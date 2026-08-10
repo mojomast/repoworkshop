@@ -1,0 +1,12 @@
+{
+  "name": "repository-planning-workshop-board",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Dependency-free manifest-driven repository planning board",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": { "node": ">=20" },
+  "license": "MIT"
+}

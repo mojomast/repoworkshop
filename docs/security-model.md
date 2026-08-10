@@ -1,6 +1,6 @@
 # Security Model
 
-RepoWorkshop is an instruction/specification package. The harness and generated board execute with the user's privileges; review both before use.
+RepoWorkshop is an instruction package with a bundled generic board template. The harness and copied board execute with the user's privileges; review both before use.
 
 ## Assets and boundaries
 
@@ -14,7 +14,7 @@ RepoWorkshop is an instruction/specification package. The harness and generated 
 
 - Define prohibited paths; never inspect/hash secrets or persist raw sensitive output.
 - Redact and byte-bound command evidence before storing/hashing it.
-- Store state outside `.git` under owner-only OS user state. Revalidate containment and reject links/reparse points around every sensitive open/rename.
+- Copy the template into an approved project-local workshop boundary; never execute or write inside installed skill/plugin/cache paths. Store state outside `.git` under owner-only project workshop state. Revalidate containment and reject links/reparse points around every sensitive open/rename.
 - Render all repository/user content as text, validate strict schemas and request limits, and avoid remote assets.
 - Bind only exact loopback or one exact assigned RFC1918 address after trust confirmation. Never use wildcard binds.
 - Use a fresh high-entropy capability URL in LAN mode, exact Host, exact same-origin Origin for mutations, restrictive headers, concurrency/body/rate/time limits, and no token logging.

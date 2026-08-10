@@ -2,7 +2,7 @@
 
 ## Artifact boundary
 
-This package ships only Markdown templates; it does not ship HTML templates or a prebuilt board. Generate or minimally adapt a standalone artifact with no runtime package dependencies and no imports from the main application. Reuse the structure and behavior of a compatible isolated board, never its product identity, and never expose or launch the main app. Define one deterministic manifest consumed by rendering, readiness, persistence validation, export, and tests, following [the canonical contract](canonical-data-contract.md).
+This package ships a [generic board template](../templates/board/README.md). Copy the complete tree into an approved project-local workshop directory before adapting or executing it; installed skill/plugin/cache paths remain immutable. Prefer this template whenever its Node.js/POSIX requirements are compatible. It has no runtime package dependencies or imports from the main application. Reuse structure and behavior, never another board's product identity, and never expose or launch the main app. Define one deterministic manifest consumed by rendering, readiness, persistence validation, export, and tests, following [the canonical contract](canonical-data-contract.md).
 
 ## Project identity and adaptation
 

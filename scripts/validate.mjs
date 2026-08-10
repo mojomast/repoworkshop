@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const skillRoot = path.join(root, "skills", "repository-planning-workshop");
 const skillFile = path.join(skillRoot, "SKILL.md");
-const currentVersion = "0.1.1";
+const currentVersion = "0.2.0";
 const currentLicense = "MIT";
 const errors = [];
 
@@ -33,6 +33,7 @@ const required = [
   "docs/security-model.md",
   "docs/workflow.md",
   "docs/portability.md",
+  "docs/board-template.md",
   "examples/example-research-finding.md",
   "examples/example-devplan.md",
   "scripts/validate.mjs",
@@ -43,11 +44,23 @@ const required = [
   "skills/repository-planning-workshop/references/board-spec.md",
   "skills/repository-planning-workshop/references/artifact-to-devplan.md",
   "skills/repository-planning-workshop/templates/research-agent-prompt.md",
-  "skills/repository-planning-workshop/templates/devplan-template.md"
+  "skills/repository-planning-workshop/templates/devplan-template.md",
+  "skills/repository-planning-workshop/templates/board/README.md",
+  "skills/repository-planning-workshop/templates/board/package.json",
+  "skills/repository-planning-workshop/templates/board/manifest.example.json",
+  "skills/repository-planning-workshop/templates/board/server.js",
+  "skills/repository-planning-workshop/templates/board/state.js",
+  "skills/repository-planning-workshop/templates/board/public/index.html",
+  "skills/repository-planning-workshop/templates/board/public/app.js",
+  "skills/repository-planning-workshop/templates/board/public/app.css",
+  "skills/repository-planning-workshop/templates/board/test/board.test.js",
+  "skills/repository-planning-workshop/templates/board/test/server.test.js"
 ];
 
 for (const relative of required) {
-  if (!fs.existsSync(path.join(root, relative))) errors.push(`Missing required file: ${relative}`);
+  const absolute = path.join(root, relative);
+  if (!fs.existsSync(absolute)) errors.push(`Missing required file: ${relative}`);
+  else { const stat = fs.lstatSync(absolute); if (!stat.isFile() || stat.isSymbolicLink()) errors.push(`Required path must be a regular non-symlink file: ${relative}`); }
 }
 
 function walk(directory) {
@@ -55,8 +68,10 @@ function walk(directory) {
   for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
     if (entry.name === ".git") continue;
     const absolute = path.join(directory, entry.name);
-    if (entry.isDirectory()) output.push(...walk(absolute));
+    if (entry.isSymbolicLink()) errors.push(`${path.relative(root, absolute)}: symlinks are not permitted`);
+    else if (entry.isDirectory()) output.push(...walk(absolute));
     else if (entry.isFile()) output.push(absolute);
+    else errors.push(`${path.relative(root, absolute)}: nonregular files are not permitted`);
   }
   return output;
 }
@@ -70,6 +85,7 @@ function readText(absolute) {
 }
 
 const files = walk(root);
+const boardRoot = path.join(skillRoot, "templates", "board");
 const machineSpecificPathPatterns = [
   /\/home\/(?!\$|\{|%)[^/\s"'`]+(?:\/|\b)/i,
   /\/Users\/(?!\$|\{|%)[^/\s"'`]+(?:\/|\b)/i,
@@ -98,6 +114,37 @@ for (const absolute of files) {
     errors.push(`${relative(absolute)}: contains a machine-specific absolute path; use an environment-variable placeholder`);
   }
 }
+
+// Browser dependencies must remain local to the copied board and must exist.
+const publicRoot = path.join(boardRoot, "public");
+const htmlFile = path.join(publicRoot, "index.html");
+const browserFiles = [htmlFile, path.join(publicRoot, "app.js"), path.join(publicRoot, "app.css")];
+for (const source of browserFiles) {
+  const text = readText(source);
+  if (/(?:https?:)?\/\//i.test(text)) errors.push(`${relative(source)}: remote or protocol-relative browser URL is forbidden`);
+  if (/\b(?:src|href)=["']\//i.test(text) || /url\(\s*["']?\//i.test(text)) errors.push(`${relative(source)}: root-relative browser URL is forbidden`);
+  if (/(?:src|href)=["'][^"']*\.\.(?:\/|%2f)/i.test(text) || /url\([^)]*\.\.(?:\/|%2f)/i.test(text)) errors.push(`${relative(source)}: traversing browser URL is forbidden`);
+}
+for (const match of readText(htmlFile).matchAll(/(?:src|href)=["']([^"']+)["']/gi)) {
+  const dependency = path.resolve(publicRoot, match[1]);
+  if (!dependency.startsWith(`${boardRoot}${path.sep}`) || !fs.existsSync(dependency) || !fs.lstatSync(dependency).isFile()) errors.push(`Board HTML dependency is missing or escapes board tree: ${match[1]}`);
+}
+const css = readText(path.join(publicRoot, "app.css"));
+for (const match of css.matchAll(/url\(\s*["']?([^"')\s]+)["']?\s*\)/gi)) {
+  if (match[1].startsWith("data:")) continue;
+  const dependency = path.resolve(publicRoot, match[1]);
+  if (!dependency.startsWith(`${boardRoot}${path.sep}`) || !fs.existsSync(dependency) || !fs.lstatSync(dependency).isFile()) errors.push(`Board CSS dependency is missing or escapes board tree: ${match[1]}`);
+}
+const sourceIdentifiers = (process.env.REPOWORKSHOP_SOURCE_IDENTIFIERS || "").split(",").map((value) => value.trim()).filter(Boolean);
+const auditedBoardText = files.filter((file) => file.startsWith(`${boardRoot}${path.sep}`) && !file.includes(`${path.sep}test${path.sep}`)).map(readText).join("\n").toLowerCase();
+for (const identifier of sourceIdentifiers) if (auditedBoardText.includes(identifier.toLowerCase())) errors.push(`Board contains caller-supplied stale source identifier: ${identifier}`);
+
+try {
+  const boardPackage = JSON.parse(readText(path.join(boardRoot, "package.json")));
+  if (!boardPackage.private || boardPackage.version !== currentVersion) errors.push(`Board package must be private and version ${currentVersion}`);
+  if (boardPackage.dependencies || boardPackage.devDependencies || boardPackage.optionalDependencies) errors.push("Board package must have no external dependencies");
+  if (boardPackage.scripts?.test !== "node --test test/*.test.js" || boardPackage.scripts?.start !== "node server.js") errors.push("Board package scripts must use the dependency-free server and built-in test runner");
+} catch (error) { errors.push(`Board package validation failed: ${error.message}`); }
 
 function parseSimpleFrontmatter(text) {
   const match = text.match(/^---\n([\s\S]*?)\n---(?:\n|$)/);
@@ -233,6 +280,7 @@ const workflow = readText(path.join(root, ".github", "workflows", "validate.yml"
 if (!/permissions:\n  contents: read/.test(workflow)) errors.push("Workflow must declare contents: read permission");
 if (!/actions\/checkout@[0-9a-f]{40}\b/.test(workflow)) errors.push("Workflow checkout action must be pinned to a full commit SHA");
 if (!workflow.includes("node scripts/validate.mjs")) errors.push("Workflow must run the validator");
+if (!workflow.includes("npm test --prefix skills/repository-planning-workshop/templates/board")) errors.push("Workflow must run board tests and smoke validation");
 
 if (errors.length > 0) {
   console.error(`Validation failed with ${errors.length} error(s):`);

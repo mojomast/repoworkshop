@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "project": {
+    "displayName": "Repository Planning Workshop",
+    "subtitle": "Review scope, priorities, dependencies, risks, and open choices.",
+    "artifactBasename": "repository-planning-workshop",
+    "stateNamespace": "repository-planning-workshop"
+  },
+  "baseline": {
+    "identity": "example-main-at-0000000",
+    "digest": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "bounds": {
+    "maxBodyBytes": 262144,
+    "maxBlockers": 40,
+    "maxTextLength": 4096,
+    "maxNotesLength": 16000
+  },
+  "groups": [
+    { "id": "foundation", "label": "Foundation", "description": "Core capabilities and shared contracts." },
+    { "id": "delivery", "label": "Delivery", "description": "User-facing rollout and operational readiness." }
+  ],
+  "epics": [
+    {
+      "id": "core-contract", "groupId": "foundation", "title": "Define the core contract", "summary": "Agree on stable inputs, outputs, and ownership boundaries.", "suggestedPriority": "P0", "dependencies": [], "dependencySummary": "No upstream dependency.", "riskSummary": "Ambiguous ownership can create rework."
+    },
+    {
+      "id": "validation-path", "groupId": "foundation", "title": "Build the validation path", "summary": "Add deterministic checks around the core contract.", "suggestedPriority": "P1", "dependencies": ["core-contract"], "dependencySummary": "Requires the core contract.", "riskSummary": "Fixtures must represent failure cases."
+    },
+    {
+      "id": "guided-rollout", "groupId": "delivery", "title": "Prepare a guided rollout", "summary": "Document adoption, observability, and recovery steps.", "suggestedPriority": "P2", "dependencies": ["validation-path"], "dependencySummary": "Follows validated behavior.", "riskSummary": "Adoption may expose untested operating assumptions."
+    }
+  ],
+  "decisions": [
+    {
+      "id": "delivery-sequence", "prompt": "How should the first delivery be sequenced?", "required": true,
+      "options": [
+        { "id": "thin-slice", "label": "Thin vertical slice", "tradeoff": "Tests the whole path early but limits initial breadth.", "recommended": true },
+        { "id": "foundation-first", "label": "Foundation first", "tradeoff": "Reduces contract churn but delays user feedback.", "recommended": false },
+        { "id": "parallel-tracks", "label": "Parallel tracks", "tradeoff": "May finish sooner but increases coordination cost.", "recommended": false }
+      ]
+    }
+  ],
+  "initialBlockers": []
+}

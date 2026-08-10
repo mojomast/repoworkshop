@@ -7,7 +7,7 @@
 
 RepoWorkshop is a portable [Agent Skill](https://agentskills.io/specification) and prompt/specification pack for OpenCode, Claude Code, Hermes Agent, and similarly capable harnesses. It tells an agent how to inspect a repository safely, synthesize cited options, generate an isolated compact planning board, retrieve validated saved decisions, and turn only approved work into a dependency-ordered plan.
 
-> **Status:** `0.1.1`. This repository provides instructions, contracts, Markdown templates, and examples. It **does not bundle HTML templates or a prebuilt planning-board executable**. The selected harness generates or minimally adapts an isolated, project-neutral board for the repository under study.
+> **Status:** `0.2.0`. A working generic planning-board template is now included. The skill automates copying it into an approved project-local workshop directory, generating a project manifest, testing the copy, and hosting it safely when capabilities and approval permit. Installed skill/plugin/cache files are never runtime or state locations.
 
 ## What it produces
 
@@ -19,6 +19,23 @@ RepoWorkshop is a portable [Agent Skill](https://agentskills.io/specification) a
 The readable board export is for review only. Canonical saved state remains authoritative.
 
 ## Quick start
+
+### Source-checkout board demo
+
+Requires Node.js 20+ and no package download:
+
+```bash
+cp -R skills/repository-planning-workshop/templates/board /tmp/repoworkshop-board
+cd /tmp/repoworkshop-board
+cp manifest.example.json manifest.json
+npm test
+mkdir -m 700 state
+TOKEN="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(32).toString("base64url"))')"
+REPOWORKSHOP_CAPABILITY="$TOKEN" REPOWORKSHOP_MANIFEST="$PWD/manifest.json" \
+  REPOWORKSHOP_STATE_DIR="$PWD/state" REPOWORKSHOP_BIND=127.0.0.1 npm start
+```
+
+Open `http://127.0.0.1:4173/$TOKEN/` without publishing the token. See the [board template guide](docs/board-template.md). The bundled manifest is synthetic; the skill replaces it with validated repository research.
 
 The quoted requests below are **natural-language trigger examples, not universal CLI syntax**. Invoke the installed skill in the way your harness supports.
 
@@ -94,6 +111,7 @@ Start a fresh conversation with `/reset` if the newly installed skill is not vis
 ## Documentation
 
 - [Workflow](docs/workflow.md)
+- [Bundled board template](docs/board-template.md)
 - [Security model](docs/security-model.md)
 - [Portability and capabilities](docs/portability.md)
 - [OpenCode](docs/opencode.md)
@@ -116,7 +134,7 @@ scripts/validate.mjs                  Dependency-free package validator
 
 The fully supported workflow target is POSIX on Linux, macOS, and WSL, where exact interface inspection, owner-only modes, atomic same-directory rename, and process identity checks can be implemented. Windows-native harnesses must supply documented safe equivalents or stop before hosting; workflow-only research and planning may still proceed. Delegation, browser automation, and LAN hosting are optional adaptations with explicit sequential, manual, or loopback fallbacks.
 
-Non-goals include shipping a universal web app, exposing the main application, providing multi-user authentication, tunneling publicly, replacing repository authority documents, or implementing approved work.
+Non-goals include turning the bundled local template into a universal/multi-user web app, exposing the main application, providing user authentication, tunneling publicly, replacing repository authority documents, or implementing approved work.
 
 ## Validate
 
@@ -124,10 +142,11 @@ Requires a maintained Node.js release and no npm dependencies:
 
 ```bash
 node scripts/validate.mjs
+npm test --prefix skills/repository-planning-workshop/templates/board
 git diff --check
 ```
 
-CI runs the same validator on pushes and pull requests.
+CI runs the validator and board tests/smoke checks on pushes and pull requests without exposing a network service.
 
 ## Contributing, security, and license
 

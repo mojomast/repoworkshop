@@ -4,13 +4,13 @@ description: Use ONLY when the user explicitly requests a repository planning wo
 license: MIT
 compatibility: Requires a capable file/Git harness; full hosting support targets POSIX Linux, macOS, or WSL. Network, browser, process, and delegation capabilities are optional with fail-closed fallbacks.
 metadata:
-  version: "0.1.1"
+  version: "0.2.0"
   author: "mojomast"
 ---
 
 # Repository Planning Workshop
 
-Run a resumable evidence-driven workshop without disturbing application work. The repository is authoritative for implementation facts; the canonical manifest and validated saved state are authoritative for workshop choices. This skill is a workflow/specification pack with Markdown templates only—**not HTML templates or a bundled planning-board executable**.
+Run a resumable evidence-driven workshop without disturbing application work. The repository is authoritative for implementation facts; the canonical manifest and validated saved state are authoritative for workshop choices. This skill includes a generic, dependency-free planning-board template that must be copied before use.
 
 ## Load the contracts
 
@@ -23,6 +23,19 @@ Resolve every path relative to this installed skill root. Read only what the act
 - [Artifact to devplan](references/artifact-to-devplan.md): authoritative retrieval and milestone construction.
 - [Research agent prompt](templates/research-agent-prompt.md): bounded read-only delegation contract.
 - [Devplan template](templates/devplan-template.md): required implementation-plan shape and gates.
+
+The complete bundled board is composed of directly materializable files (resolve all paths relative to this skill root):
+
+- [Board copy/use guide](templates/board/README.md)
+- [Board package metadata](templates/board/package.json)
+- [Synthetic manifest example](templates/board/manifest.example.json)
+- [HTTP server](templates/board/server.js)
+- [Manifest/state authority module](templates/board/state.js)
+- [Board HTML](templates/board/public/index.html)
+- [Board browser logic](templates/board/public/app.js)
+- [Board styles](templates/board/public/app.css)
+- [Manifest, state, UI, and adaptation tests](templates/board/test/board.test.js)
+- [Route and smoke tests](templates/board/test/server.test.js)
 
 ## Capability contract
 
@@ -64,9 +77,9 @@ Use the lifecycle checkpoints after scope confirmation, synthesis review, pre-wr
 2. Fan out non-overlapping read-only lanes with [the research prompt](templates/research-agent-prompt.md), or run lanes sequentially when delegation is unavailable.
 3. Synthesize typed evidence, explicit uncertainty, 2–4 feasible options per unresolved decision, and deterministic dependency DAGs into one canonical manifest.
 4. Before generation, record explicit generic project metadata. Use the neutral defaults `Repository Planning Workshop` and `repository-planning-workshop` unless the user intentionally supplies a project display name and safe slug. Derive the board title, export heading and filename, persistence namespace, manifest identity/content, UI assets/copy, and repository-evidence-based roadmap items from that metadata—never from a source board's product identity.
-5. Generate or minimally adapt an isolated no-runtime-dependency board under [the board specification](references/board-spec.md). One manifest drives rendering, validation, persistence, export, and tests. Adapt structure and behavior only: never retain source-board product names, filenames, storage namespaces, branded assets, copy, or roadmap content.
-6. Audit generated HTML, CSS, JavaScript, readable exports, filenames, and storage keys/paths for stale source identifiers. Add and run a focused regression test that adapts a fixture with deliberately different source identifiers and proves none survive while the requested/default metadata appears.
-7. Run the smallest complete state/API/UI/accessibility/mobile/security validation available. Independently review security, correctness, and usability; fix material findings and rerun affected checks.
+5. Prefer the [bundled board](templates/board/README.md) when Node.js/POSIX requirements are compatible. Copy every linked board file into an approved project-local workshop directory; never execute it or write state in installed skill/plugin/package-manager/agent cache paths. Generate a validated manifest there, run the copied artifact's `npm test`, and only then host. One manifest drives rendering, validation, persistence, export, and tests. Adapt structure and behavior only: never retain source-board product names, filenames, storage namespaces, branded assets, copy, or roadmap content.
+6. Audit generated HTML, CSS, JavaScript, readable exports, filenames, and storage keys/paths for stale source identifiers. Supply all known source identifiers through the template's documented `REPOWORKSHOP_SOURCE_IDENTIFIERS` test input and prove none survive while requested/default metadata appears; do not rely on a hardcoded product denylist.
+7. Run the smallest complete state/API/UI/accessibility/mobile/security validation available. Independently review security, correctness, and usability; fix material findings and rerun affected checks. If the harness cannot materialize or run the whole template, fail closed: provide only a validated artifact/manual loopback procedure and do not claim runtime validation or hosting.
 
 ## Host and resume
 

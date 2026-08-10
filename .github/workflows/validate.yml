@@ -17,5 +17,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - name: Validate package
         run: node scripts/validate.mjs
+      - name: Test bundled board
+        run: npm test --prefix skills/repository-planning-workshop/templates/board
       - name: Check whitespace
         run: git diff --check
