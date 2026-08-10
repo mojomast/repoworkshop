@@ -1,0 +1,30 @@
+{
+  "name": "repoworkshop",
+  "owner": {
+    "name": "mojomast",
+    "url": "https://github.com/mojomast"
+  },
+  "description": "Portable evidence-driven repository planning skills.",
+  "version": "0.1.0",
+  "plugins": [
+    {
+      "name": "repoworkshop",
+      "source": "./",
+      "description": "Evidence-driven repository planning workshops and interactive devplan generation.",
+      "version": "0.1.0",
+      "author": {
+        "name": "mojomast",
+        "url": "https://github.com/mojomast"
+      },
+      "homepage": "https://github.com/mojomast/repoworkshop",
+      "repository": "https://github.com/mojomast/repoworkshop",
+      "license": "Apache-2.0",
+      "keywords": [
+        "repository-analysis",
+        "software-planning",
+        "devplan",
+        "agent-skills"
+      ]
+    }
+  ]
+}

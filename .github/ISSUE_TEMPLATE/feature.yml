@@ -1,0 +1,26 @@
+name: Feature request
+description: Propose a focused workflow, contract, or portability improvement
+title: "feat: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What planning-workshop problem is not currently addressed?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Include required capabilities, fallback, security impact, and affected harnesses.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives and non-goals
+    validations:
+      required: true

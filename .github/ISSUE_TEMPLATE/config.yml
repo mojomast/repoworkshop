@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/mojomast/repoworkshop/security/advisories/new
+    about: Report vulnerabilities privately; do not publish sensitive details.
+  - name: Usage question
+    url: https://github.com/mojomast/repoworkshop/issues/new?template=feature.yml
+    about: Ask a sanitized usage or portability question.
