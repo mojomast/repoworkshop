@@ -2,6 +2,13 @@
 
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.1.1 - 2026-08-10
+
+### Changed
+
+- Changed project licensing to MIT.
+- Made board generation and adaptation explicitly project-neutral and strengthened portability validation.
+
 ## 0.1.0 - 2026-08-10
 
 ### Added

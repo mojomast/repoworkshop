@@ -1,16 +1,16 @@
 ---
 name: repository-planning-workshop
 description: Use ONLY when the user explicitly requests a repository planning workshop, an interactive planning board, retrieval of saved workshop decisions, or conversion of those decisions into an actionable devplan. Do not trigger for ordinary repository research, implementation, or generic planning.
-license: Apache-2.0
+license: MIT
 compatibility: Requires a capable file/Git harness; full hosting support targets POSIX Linux, macOS, or WSL. Network, browser, process, and delegation capabilities are optional with fail-closed fallbacks.
 metadata:
-  version: "0.1.0"
+  version: "0.1.1"
   author: "mojomast"
 ---
 
 # Repository Planning Workshop
 
-Run a resumable evidence-driven workshop without disturbing application work. The repository is authoritative for implementation facts; the canonical manifest and validated saved state are authoritative for workshop choices. This skill is a workflow/specification pack, **not a bundled planning-board executable**.
+Run a resumable evidence-driven workshop without disturbing application work. The repository is authoritative for implementation facts; the canonical manifest and validated saved state are authoritative for workshop choices. This skill is a workflow/specification pack with Markdown templates only—**not HTML templates or a bundled planning-board executable**.
 
 ## Load the contracts
 
@@ -63,8 +63,10 @@ Use the lifecycle checkpoints after scope confirmation, synthesis review, pre-wr
 1. Follow [research and synthesis](references/research-and-synthesis.md).
 2. Fan out non-overlapping read-only lanes with [the research prompt](templates/research-agent-prompt.md), or run lanes sequentially when delegation is unavailable.
 3. Synthesize typed evidence, explicit uncertainty, 2–4 feasible options per unresolved decision, and deterministic dependency DAGs into one canonical manifest.
-4. Generate or minimally adapt an isolated no-runtime-dependency board under [the board specification](references/board-spec.md). One manifest drives rendering, validation, persistence, export, and tests.
-5. Run the smallest complete state/API/UI/accessibility/mobile/security validation available. Independently review security, correctness, and usability; fix material findings and rerun affected checks.
+4. Before generation, record explicit generic project metadata. Use the neutral defaults `Repository Planning Workshop` and `repository-planning-workshop` unless the user intentionally supplies a project display name and safe slug. Derive the board title, export heading and filename, persistence namespace, manifest identity/content, UI assets/copy, and repository-evidence-based roadmap items from that metadata—never from a source board's product identity.
+5. Generate or minimally adapt an isolated no-runtime-dependency board under [the board specification](references/board-spec.md). One manifest drives rendering, validation, persistence, export, and tests. Adapt structure and behavior only: never retain source-board product names, filenames, storage namespaces, branded assets, copy, or roadmap content.
+6. Audit generated HTML, CSS, JavaScript, readable exports, filenames, and storage keys/paths for stale source identifiers. Add and run a focused regression test that adapts a fixture with deliberately different source identifiers and proves none survive while the requested/default metadata appears.
+7. Run the smallest complete state/API/UI/accessibility/mobile/security validation available. Independently review security, correctness, and usability; fix material findings and rerun affected checks.
 
 ## Host and resume
 

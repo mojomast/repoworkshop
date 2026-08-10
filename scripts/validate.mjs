@@ -8,12 +8,13 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const skillRoot = path.join(root, "skills", "repository-planning-workshop");
 const skillFile = path.join(skillRoot, "SKILL.md");
+const currentVersion = "0.1.1";
+const currentLicense = "MIT";
 const errors = [];
 
 const required = [
   "README.md",
   "LICENSE",
-  "NOTICE",
   "CHANGELOG.md",
   "CONTRIBUTING.md",
   "SECURITY.md",
@@ -69,16 +70,32 @@ function readText(absolute) {
 }
 
 const files = walk(root);
-const forbiddenProjectName = ["velvet", "mvp"].join("-");
-const developmentPath = new RegExp(["/", "home", "/[^/\\s]+/", "projects", "/"].join(""), "i");
+const machineSpecificPathPatterns = [
+  /\/home\/(?!\$|\{|%)[^/\s"'`]+(?:\/|\b)/i,
+  /\/Users\/(?!\$|\{|%)[^/\s"'`]+(?:\/|\b)/i,
+  /(?:^|[\s"'`(=])(?:[A-Za-z]:[\\/])/m
+];
+const machinePathCases = [
+  [["", "home", "developer", "workspace"].join("/"), true],
+  [["", "Users", "developer", "workspace"].join("/"), true],
+  [["C:", "workspace"].join("\\"), true],
+  ["$HOME/workspace", false],
+  ["${HOME}/workspace", false],
+  ["%USERPROFILE%\\workspace", false],
+  ["$env:USERPROFILE\\workspace", false]
+];
+for (const [candidate, expected] of machinePathCases) {
+  const actual = machineSpecificPathPatterns.some((pattern) => pattern.test(candidate));
+  if (actual !== expected) errors.push("Validator machine-specific path assumptions failed");
+}
 for (const absolute of files) {
   const text = readText(absolute);
   const lines = text.split("\n");
   lines.forEach((line, index) => {
     if (/[ \t]+$/.test(line)) errors.push(`${relative(absolute)}:${index + 1}: trailing whitespace`);
   });
-  if (text.toLowerCase().includes(forbiddenProjectName) || developmentPath.test(text)) {
-    errors.push(`${relative(absolute)}: contains a project-specific or absolute development path`);
+  if (machineSpecificPathPatterns.some((pattern) => pattern.test(text))) {
+    errors.push(`${relative(absolute)}: contains a machine-specific absolute path; use an environment-variable placeholder`);
   }
 }
 
@@ -123,13 +140,13 @@ try {
   if (typeof frontmatter.description !== "string" || frontmatter.description.length < 1 || frontmatter.description.length > 1024 || !frontmatter.description.startsWith("Use ONLY when")) {
     errors.push('SKILL.md: description must be narrow, 1..1024 characters, and start with "Use ONLY when"');
   }
-  if (frontmatter.license !== "Apache-2.0") errors.push("SKILL.md: license must be Apache-2.0");
+  if (frontmatter.license !== currentLicense) errors.push(`SKILL.md: license must be ${currentLicense}`);
   if (typeof frontmatter.compatibility !== "string" || frontmatter.compatibility.length > 500) errors.push("SKILL.md: invalid compatibility string");
   if (!frontmatter.metadata || Object.values(frontmatter.metadata).some((value) => typeof value !== "string")) {
     errors.push("SKILL.md: metadata values must all be strings");
   }
-  if (frontmatter.metadata?.version !== "0.1.0" || frontmatter.metadata?.author !== "mojomast") {
-    errors.push("SKILL.md: expected version 0.1.0 and author mojomast metadata");
+  if (frontmatter.metadata?.version !== currentVersion || frontmatter.metadata?.author !== "mojomast") {
+    errors.push(`SKILL.md: expected version ${currentVersion} and author mojomast metadata`);
   }
 } catch (error) {
   errors.push(`SKILL.md: ${error.message}`);
@@ -200,11 +217,11 @@ try {
   if (plugin.name !== "repoworkshop" || marketplace.name !== "repoworkshop" || !entry) {
     errors.push("Claude plugin and marketplace names must consistently be repoworkshop");
   }
-  if (plugin.version !== "0.1.0" || marketplace.version !== plugin.version || entry?.version !== plugin.version) {
-    errors.push("Claude plugin and marketplace versions must consistently be 0.1.0");
+  if (plugin.version !== currentVersion || marketplace.version !== plugin.version || entry?.version !== plugin.version) {
+    errors.push(`Claude plugin and marketplace versions must consistently be ${currentVersion}`);
   }
   if (entry?.source !== "./") errors.push('Claude marketplace plugin source must be "./"');
-  if (plugin.license !== "Apache-2.0" || entry?.license !== plugin.license) errors.push("Claude package license mismatch");
+  if (plugin.license !== currentLicense || entry?.license !== plugin.license) errors.push("Claude package license mismatch");
   if (!fs.existsSync(path.join(root, "skills", "repository-planning-workshop", "SKILL.md"))) {
     errors.push("Claude plugin skill directory is missing");
   }

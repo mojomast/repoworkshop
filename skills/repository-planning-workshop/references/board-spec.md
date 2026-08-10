@@ -2,7 +2,18 @@
 
 ## Artifact boundary
 
-This package does not ship a prebuilt board. Generate or minimally adapt a standalone artifact with no runtime package dependencies and no imports from the main application. Reuse a compatible isolated board; never expose or launch the main app. Define one deterministic manifest consumed by rendering, readiness, persistence validation, export, and tests, following [the canonical contract](canonical-data-contract.md).
+This package ships only Markdown templates; it does not ship HTML templates or a prebuilt board. Generate or minimally adapt a standalone artifact with no runtime package dependencies and no imports from the main application. Reuse the structure and behavior of a compatible isolated board, never its product identity, and never expose or launch the main app. Define one deterministic manifest consumed by rendering, readiness, persistence validation, export, and tests, following [the canonical contract](canonical-data-contract.md).
+
+## Project identity and adaptation
+
+Capture explicit generic project metadata before generating files:
+
+- `displayName`: an intentionally user-supplied project name, otherwise `Repository Planning Workshop`.
+- `slug`: a validated filesystem/storage-safe slug supplied with that name, otherwise `repository-planning-workshop`.
+
+The manifest must contain this metadata. Derive every user-facing board title, export heading and filename, persistence namespace/key/path, manifest identity and descriptive content, UI asset/copy choice, and repository-evidence-based roadmap item from the canonical metadata and current research. A neutral default must remain neutral; do not infer a display name from an existing board. When adapting, replace rather than retain every source-board product name, filename, namespace, branded asset, phrase, and roadmap item, including identifiers hidden in CSS classes, JavaScript constants, test snapshots, exports, and storage paths. User intent in current metadata is the only exception.
+
+Before accepting an artifact, perform a case-insensitive stale-source-identifier audit across generated HTML, CSS, JavaScript, export content/filenames, and persistence keys/paths. Add a focused regression test using a fixture whose source display name, slug, copy, filename, namespace, assets, and roadmap content deliberately differ from the target metadata. Assert that no source identifier remains and that all target/default values are consistent.
 
 ## Compact accessible UI
 
@@ -53,6 +64,7 @@ Test the smallest complete surface:
 - Strict state bounds, no-write reads, atomicity, permissions, symlink/path-race rejection, migration/refusal/recovery, conflict handling.
 - API methods/types/limits/statuses, redaction/headers, capability path, Host/Origin/CSRF rejection, exact bind.
 - UI defaults, decisions/recommendations, blockers, notes, filters, export, reload/conflict, hostile text.
+- Project-metadata derivation and the stale-source-identifier adaptation regression across HTML/CSS/JavaScript/export/storage surfaces.
 - Keyboard/focus/accessible names/semantics/contrast, mobile layout, reduced motion, and zero remote requests.
 
 If browser automation is unavailable, report manual checks as unexecuted rather than claiming them. Perform independent security/correctness/usability review, fix findings, and rerun affected checks.

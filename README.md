@@ -1,13 +1,13 @@
 # RepoWorkshop
 
 [![Validation](https://github.com/mojomast/repoworkshop/actions/workflows/validate.yml/badge.svg)](https://github.com/mojomast/repoworkshop/actions/workflows/validate.yml)
-[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 **Evidence-driven repository research, an interactive decision workshop, and an implementation-ready devplan—without coupling the workflow to one agent harness.**
 
 RepoWorkshop is a portable [Agent Skill](https://agentskills.io/specification) and prompt/specification pack for OpenCode, Claude Code, Hermes Agent, and similarly capable harnesses. It tells an agent how to inspect a repository safely, synthesize cited options, generate an isolated compact planning board, retrieve validated saved decisions, and turn only approved work into a dependency-ordered plan.
 
-> **Status:** `0.1.0` (initial public release). This repository provides instructions, contracts, templates, and examples. It **does not bundle a prebuilt planning-board executable**. The selected harness generates or minimally adapts an isolated board for the repository under study.
+> **Status:** `0.1.1`. This repository provides instructions, contracts, Markdown templates, and examples. It **does not bundle HTML templates or a prebuilt planning-board executable**. The selected harness generates or minimally adapts an isolated, project-neutral board for the repository under study.
 
 ## What it produces
 
@@ -131,4 +131,4 @@ CI runs the same validator on pushes and pull requests.
 
 ## Contributing, security, and license
 
-See [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). Apache-2.0 licensed; see [LICENSE](LICENSE) and [NOTICE](NOTICE).
+See [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). MIT licensed; see [LICENSE](LICENSE).

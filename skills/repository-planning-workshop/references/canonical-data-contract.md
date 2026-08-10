@@ -44,9 +44,13 @@ Line evidence requires real bounds. Binary evidence is whole-file. History claim
 ```text
 Manifest {
   schemaVersion: 1, manifestVersion: integer(1..2147483647), generatedAt: rfc3339-utc,
+  project: ProjectMetadata,
   researchBaseline: ResearchBaseline, baselineDigest: sha256, manifestDigest: sha256,
   limits: { overallNotesMax: integer(1..8000), epicNotesMax: integer(1..2000), decisionCustomMax: integer(1..2000), blockerNoteMax: integer(1..2000) },
   evidence: [Evidence](0..4096), epics: [Epic](0..512), decisions: [Decision](0..256), blockers: [Blocker](0..256)
+}
+ProjectMetadata {
+  displayName: NFC string(1..120), slug: /^[a-z0-9]+(?:-[a-z0-9]+)*$/ length(1..80)
 }
 Epic {
   id: epic-id, title: string(1..120), summary: string(0..1000), classification,
@@ -72,7 +76,7 @@ Blocker {
 }
 ```
 
-`manifestDigest` omits itself. `baselineDigest` equals the validated baseline self-digest. Validate all references, option membership/prefixes, bounds, and unique exact order. Epic and decision graphs are DAGs; manifest order breaks topological ties. `priorityScore` equals the breakdown sum and maps `8..10=P0`, `5..7=P1`, `2..4=P2`, otherwise `P3`.
+`project` is explicit generation input. It defaults to `Repository Planning Workshop` / `repository-planning-workshop` unless the user intentionally supplies both values; board identity, export, persistence, UI copy/assets, and evidence-derived roadmap content use it as specified in [the board contract](board-spec.md). `manifestDigest` omits itself. `baselineDigest` equals the validated baseline self-digest. Validate all references, option membership/prefixes, bounds, and unique exact order. Epic and decision graphs are DAGs; manifest order breaks topological ties. `priorityScore` equals the breakdown sum and maps `8..10=P0`, `5..7=P1`, `2..4=P2`, otherwise `P3`.
 
 ## Canonical saved state
 

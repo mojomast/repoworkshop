@@ -19,13 +19,13 @@ node scripts/validate.mjs
 git diff --check
 ```
 
-Update [CHANGELOG.md](CHANGELOG.md) for user-visible changes. Add or adjust examples when changing output contracts. Documentation must not contain secrets, machine-specific paths, invented commands, or claims that the package ships a planning-board executable.
+Update [CHANGELOG.md](CHANGELOG.md) for user-visible changes. Add or adjust examples when changing output contracts. Documentation must not contain secrets, machine-specific paths, invented commands, or claims that the package ships a planning-board executable. Use documented environment-variable placeholders such as `$HOME`, `${HOME}`, `%USERPROFILE%`, or `$env:USERPROFILE` instead of user-specific absolute paths.
 
 ## Pull requests
 
 - Keep changes focused and explain the user impact and security implications.
 - Include exact validation commands/results.
 - Preserve fail-closed behavior for writes, network exposure, retrieval, and canonical state.
-- By submitting a contribution, you agree that it is licensed under Apache-2.0.
+- By submitting a contribution, you agree that it is licensed under the MIT License.
 
 All participation is governed by [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).

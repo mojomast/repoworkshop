@@ -8,7 +8,9 @@ The harness reads repository authority and instructions, captures HEAD/status pl
 
 ## 2. Synthesis and generation
 
-Findings retain typed citations, confidence, uncertainty, and a baseline digest. Synthesis resolves conflicts or turns them into decisions with 2–4 feasible options. Stable epics and decision dependencies form validated DAGs. The harness then generates or minimally adapts an isolated no-dependency board; this repository does not contain that executable.
+Findings retain typed citations, confidence, uncertainty, and a baseline digest. Synthesis resolves conflicts or turns them into decisions with 2–4 feasible options. Stable epics and decision dependencies form validated DAGs. The harness then generates or minimally adapts an isolated no-dependency board. This repository contains only Markdown templates—no HTML template or board executable.
+
+Generation starts from explicit generic project metadata. Unless the user intentionally supplies a display name and safe slug, use `Repository Planning Workshop` and `repository-planning-workshop`. The board title, export heading/filename, persistence namespace, manifest identity/content, UI assets/copy, and evidence-based roadmap items all derive from that metadata and current repository research. Adaptation may reuse structure and behavior, but must replace source-board product names, filenames, namespaces, assets, copy, and roadmap items. Before acceptance, audit HTML, CSS, JavaScript, exports, filenames, and storage keys/paths case-insensitively for stale source identifiers and run a focused adaptation regression test with deliberately different source and target metadata.
 
 ## 3. Host/resume
 
