@@ -18,7 +18,7 @@ Host is an ephemeral branch from Generate, not a prerequisite for research. The 
 
 ## 4. Retrieve
 
-The validated board state boundary loads canonical state and independently checks revision, digests, exact ordering, blockers, and computed readiness. The harness refreshes the evidence baseline and creates an immutable approved-selection snapshot. Readable export, screenshots, and UI scraping are never authoritative.
+The validated board state boundary loads canonical persisted state (revision at least `1`) and independently checks prefixed baseline/manifest/state digests, exact typed IDs/order, Build dependency closure, required decisions, blockers, and computed readiness. Revision `0` is only a synthesized no-write API state for first save. The harness refreshes the evidence baseline and creates an immutable approved-selection snapshot whose source digest/revision exactly match state. Readable `.txt` export, screenshots, and UI scraping are never authoritative.
 
 ## 5. Plan
 

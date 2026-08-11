@@ -7,7 +7,7 @@
 
 RepoWorkshop is a portable [Agent Skill](https://agentskills.io/specification) and prompt/specification pack for OpenCode, Claude Code, Hermes Agent, and similarly capable harnesses. It tells an agent how to inspect a repository safely, synthesize cited options, generate an isolated compact planning board, retrieve validated saved decisions, and turn only approved work into a dependency-ordered plan.
 
-> **Status:** `0.2.0`. A working generic planning-board template is now included. The skill automates copying it into an approved project-local workshop directory, generating a project manifest, testing the copy, and hosting it safely when capabilities and approval permit. Installed skill/plugin/cache files are never runtime or state locations.
+> **Status:** `0.2.1`. The generic planning-board template now shares the skill's canonical manifest, saved-state, digest, readiness, and retrieval contracts. Installed skill/plugin/cache files are never runtime or state locations.
 
 ## What it produces
 

@@ -92,15 +92,15 @@ DecisionAnswer { id: decision-id, selectedOptionId: option-id|null, customAnswer
 BlockerAnswer { id: blocker-id, resolved: boolean, resolutionNote: bounded-string }
 ```
 
-The server/state boundary owns revision, timestamp, readiness, and `stateDigest`; clients cannot force them. Initial state uses exact manifest order, enables every epic as Build, leaves decisions unselected, blockers unresolved, and notes blank. Recommendations never initialize selection.
+The server/state boundary owns revision, timestamp, readiness, and `stateDigest`; clients cannot force them. Initial state uses exact manifest order, enables every epic as Build, leaves decisions unselected, blockers unresolved, and notes blank. Recommendations never initialize selection. A no-write GET may synthesize revision `0` solely as the optimistic predecessor for first save; it is not a `SavedState`. The first persisted save is revision `1`, and validation of persisted state rejects revision `0`.
 
-At most one selected option or custom answer may exist. A custom value must be allowed, bounded, nonblank/trimmed, and satisfy line policy. A decision is currently required when declared required, referenced by an enabled Build epic, or depended on by another required decision. `Remove` and `Defer` need reasons; enabled `Need decision` is never ready. Disabled epics remain stored but do not enter implementation dependencies.
+`selectedOptionId` is the authoritative predefined selection. `customAnswer=null` means Custom has not been selected; a non-null custom string records the selected/draft Custom control. Blank/whitespace Custom is valid and saveable but is unanswered. A retained custom draft may coexist with a predefined selection so switching controls does not destroy user input; the predefined selection is then authoritative. A nonblank custom answer must be allowed, bounded, and satisfy line policy. A decision is currently required when declared required, referenced by an enabled Build epic, or depended on by another required decision. `Remove` and `Defer` need reasons; enabled `Need decision` is never ready. Disabled epics remain stored but do not enter implementation dependencies.
 
 A blocker predicate is satisfied only when its declared decision/epic/manual condition is true; resolution additionally requires `resolved=true` and a nonblank note. Contradictory resolutions are invalid.
 
 `ready=true` iff schemas/digests/revision/order validate; enabled epics have final dispositions; Build dependencies and required decisions are answered; blockers are inactive; references resolve; both DAGs are acyclic; and no orphan answer exists. An explicitly approved empty Build scope may be ready. Recompute this exact predicate on every save/load.
 
-Persist with optimistic expected revision, strict content type/body limits, symlink-safe owner-only atomic replacement, and no-write reads. Unknown versions or digest mismatch stop. Migration is explicit, one-version, lossless, backup-preserving, and fully revalidated. A manifest change always clears readiness and requires review/save.
+Persist with optimistic expected revision, strict content type/body limits, no-follow opens where supported, post-open metadata checks, handle writes, temporary-file fsync, close, validated owner-only backup preservation, same-directory atomic replacement, and containing-directory fsync where supported. Clean only owned temporary names and retain/recover prior valid state after failed publication. Reads do not write. Unknown versions or digest mismatch stop. Migration is explicit, one-version, lossless, backup-preserving, and fully revalidated. A manifest change always clears readiness and requires review/save.
 
 ## Approved selection snapshot
 

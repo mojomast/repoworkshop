@@ -2,6 +2,19 @@
 
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.2.1 - 2026-08-11
+
+### Fixed
+
+- Aligned the bundled manifest and state with typed canonical IDs, prefixed SHA-256 digests, baseline and self-digest projections, persisted state digests, exact order, revision-one persistence, and approved retrieval snapshots.
+- Added strict duplicate-key JSON parsing, NFC/Unicode-scalar/safe-integer canonicalization, published digest vectors, dependency-aware focusable readiness, and saveable unanswered custom choices.
+- Hardened no-follow atomic persistence with synced temporary files, validated backups/recovery, directory sync, bounded HTTP concurrency/timeouts/connection use, and reliable JSON body-overflow responses.
+- Made `.txt` review exports inert under hostile multiline text and added deterministic pure UI tests plus an explicitly skipping optional installed-browser smoke.
+
+### Changed
+
+- Updated the skill, plugin, marketplace, board package, validator inventory, and normative documentation to version 0.2.1.
+
 ## 0.2.0 - 2026-08-10
 
 ### Added

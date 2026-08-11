@@ -4,11 +4,12 @@
 const fs = require("node:fs");
 const http = require("node:http");
 const path = require("node:path");
-const { validateManifest, manifestDigest, loadState, persistState, computeReady } = require("./state.js");
+const { parseJsonStrict, decodeUtf8Strict, validateManifest, loadState, persistState, computeReady } = require("./state.js");
 
 const ROOT = __dirname;
 const ASSETS = Object.freeze({
   "": ["public/index.html", "text/html; charset=utf-8"],
+  "ui-helpers.js": ["public/ui-helpers.js", "text/javascript; charset=utf-8"],
   "app.js": ["public/app.js", "text/javascript; charset=utf-8"],
   "app.css": ["public/app.css", "text/css; charset=utf-8"]
 });
@@ -19,6 +20,8 @@ const SECURITY_HEADERS = Object.freeze({
   "X-Frame-Options": "DENY",
   "Referrer-Policy": "no-referrer"
 });
+const MAX_BODY_BYTES = 262144;
+const MAX_MUTATIONS = 4;
 
 function isSafeBind(address) {
   if (typeof address !== "string" || !/^\d{1,3}(?:\.\d{1,3}){3}$/.test(address)) return false;
@@ -38,23 +41,42 @@ function loadConfig(environment = process.env) {
   return { bind, port: Number(portText), capability, manifestPath, stateDir };
 }
 function loadManifest(file) {
-  const stat = fs.lstatSync(file); if (!stat.isFile() || stat.isSymbolicLink()) throw new Error("manifest must be a regular file");
-  return validateManifest(JSON.parse(fs.readFileSync(file, "utf8")));
+  let handle;
+  try {
+    handle = fs.openSync(file, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0));
+    const stat = fs.fstatSync(handle); if (!stat.isFile()) throw new Error("manifest must be a regular file");
+    return validateManifest(parseJsonStrict(decodeUtf8Strict(fs.readFileSync(handle))));
+  } finally { if (handle !== undefined) fs.closeSync(handle); }
 }
-function publicManifest(manifest) {
-  return structuredClone(manifest);
-}
+function publicManifest(manifest) { return structuredClone(manifest); }
 function json(response, status, value, extra = {}) {
   const body = `${JSON.stringify(value)}\n`;
   response.writeHead(status, { ...SECURITY_HEADERS, "Content-Type": "application/json; charset=utf-8", "Content-Length": Buffer.byteLength(body), ...extra }); response.end(body);
 }
+function jsonThenStop(request, response, status, value, extra = {}) { response.once("finish", () => request.destroy()); json(response, status, value, extra); }
 function empty(response, status, extra = {}) { response.writeHead(status, { ...SECURITY_HEADERS, ...extra }); response.end(); }
 function hostFor(config) { return `${config.bind}:${config.port}`; }
 
+function readBody(request, response) {
+  return new Promise((resolve, reject) => {
+    const chunks = []; let size = 0; let finished = false;
+    function overflow() {
+      if (finished) return; finished = true; request.pause();
+      jsonThenStop(request, response, 413, { error: "Request body too large" }); resolve(null);
+    }
+    request.on("data", (chunk) => { if (finished) return; size += chunk.length; if (size > MAX_BODY_BYTES) overflow(); else chunks.push(chunk); });
+    request.on("end", () => { if (!finished) { finished = true; resolve(Buffer.concat(chunks)); } });
+    request.on("aborted", () => { if (!finished) { finished = true; reject(new Error("request aborted")); } });
+    request.on("error", (error) => { if (!finished) { finished = true; reject(error); } });
+  });
+}
+
 function createHandler(config, manifest) {
   const base = `/${config.capability}/`;
-  const known = new Map([[base, ["GET"]], [`${base}app.js`, ["GET"]], [`${base}app.css`, ["GET"]], [`${base}api/manifest`, ["GET"]], [`${base}api/state`, ["GET", "PUT"]]]);
+  const known = new Map([[base, ["GET"]], [`${base}ui-helpers.js`, ["GET"]], [`${base}app.js`, ["GET"]], [`${base}app.css`, ["GET"]], [`${base}api/manifest`, ["GET"]], [`${base}api/state`, ["GET", "PUT"]]]);
+  let activeMutations = 0;
   return async function handler(request, response) {
+    let mutationSlot = false;
     try {
       if (request.headers.host !== hostFor(config)) return empty(response, 400);
       if (["forwarded", "x-forwarded-for", "x-forwarded-host", "x-forwarded-proto"].some((name) => request.headers[name] !== undefined)) return empty(response, 400);
@@ -63,13 +85,15 @@ function createHandler(config, manifest) {
       const methods = known.get(pathname);
       if (!methods.includes(request.method)) return empty(response, 405, { Allow: methods.join(", ") });
       if (request.method === "PUT") {
+        if (activeMutations >= MAX_MUTATIONS) return jsonThenStop(request, response, 503, { error: "Too many concurrent saves" }, { "Retry-After": "1" });
+        activeMutations += 1; mutationSlot = true;
         if (request.headers.origin !== `http://${hostFor(config)}`) return empty(response, 403);
         if (!/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(request.headers["content-type"] || "")) return empty(response, 415);
-        const declared = Number(request.headers["content-length"] || 0); if (declared > manifest.bounds.maxBodyBytes) return empty(response, 413);
-        const chunks = []; let size = 0; let overflow = false;
-        for await (const chunk of request) { size += chunk.length; if (size > manifest.bounds.maxBodyBytes) overflow = true; else chunks.push(chunk); }
-        if (overflow) return empty(response, 413);
-        let payload; try { payload = JSON.parse(Buffer.concat(chunks).toString("utf8")); } catch { return json(response, 400, { error: "Invalid request" }); }
+        if (request.headers["transfer-encoding"] !== undefined && request.headers["content-length"] !== undefined) return json(response, 400, { error: "Ambiguous request framing" });
+        const length = request.headers["content-length"];
+        if (length !== undefined && (!/^(?:0|[1-9]\d*)$/.test(length) || Number(length) > MAX_BODY_BYTES)) return jsonThenStop(request, response, 413, { error: "Request body too large" });
+        const body = await readBody(request, response); if (body === null) return;
+        let payload; try { payload = parseJsonStrict(new TextDecoder("utf-8", { fatal: true }).decode(body)); } catch { return json(response, 400, { error: "Invalid request" }); }
         if (!payload || Object.keys(payload).sort().join(",") !== "expectedRevision,state") return json(response, 400, { error: "Invalid request" });
         try {
           const result = persistState(config.stateDir, manifest, payload.state, payload.expectedRevision);
@@ -77,7 +101,7 @@ function createHandler(config, manifest) {
           return json(response, 200, { state: result.state, readinessFailures: computeReady(result.state, manifest).failures });
         } catch (error) { return json(response, error.code === "REPOWORKSHOP_PERSISTENCE" ? 500 : 400, { error: error.code === "REPOWORKSHOP_PERSISTENCE" ? "State could not be saved" : "Invalid state" }); }
       }
-      if (pathname === `${base}api/manifest`) return json(response, 200, { manifest: publicManifest(manifest), manifestDigest: manifestDigest(manifest) });
+       if (pathname === `${base}api/manifest`) return json(response, 200, { manifest: publicManifest(manifest) });
       if (pathname === `${base}api/state`) {
         try { const state = loadState(config.stateDir, manifest); return json(response, 200, { state, readinessFailures: computeReady(state, manifest).failures }); }
         catch { return json(response, 500, { error: "State unavailable" }); }
@@ -85,12 +109,19 @@ function createHandler(config, manifest) {
       const asset = ASSETS[pathname === base ? "" : pathname.slice(base.length)];
       const body = fs.readFileSync(path.join(ROOT, asset[0])); response.writeHead(200, { ...SECURITY_HEADERS, "Content-Type": asset[1], "Content-Length": body.length }); response.end(body);
     } catch { if (!response.headersSent) json(response, 500, { error: "Request failed" }); else response.destroy(); }
+    finally { if (mutationSlot) activeMutations -= 1; }
   };
 }
 
 function createServer(config) {
   const manifest = loadManifest(config.manifestPath);
-  return http.createServer(createHandler(config, manifest));
+  const server = http.createServer(createHandler(config, manifest));
+  server.headersTimeout = 5000;
+  server.requestTimeout = 10000;
+  server.keepAliveTimeout = 2000;
+  server.maxRequestsPerSocket = 20;
+  server.maxConnections = 32;
+  return server;
 }
 
 if (require.main === module) {
@@ -100,4 +131,4 @@ if (require.main === module) {
   } catch (error) { console.error(`Unable to start planning board: ${error.message}`); process.exitCode = 1; }
 }
 
-module.exports = { SECURITY_HEADERS, isSafeBind, loadConfig, loadManifest, publicManifest, createHandler, createServer };
+module.exports = { SECURITY_HEADERS, MAX_BODY_BYTES, MAX_MUTATIONS, isSafeBind, loadConfig, loadManifest, publicManifest, createHandler, createServer };

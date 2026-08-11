@@ -4,7 +4,7 @@ description: Use ONLY when the user explicitly requests a repository planning wo
 license: MIT
 compatibility: Requires a capable file/Git harness; full hosting support targets POSIX Linux, macOS, or WSL. Network, browser, process, and delegation capabilities are optional with fail-closed fallbacks.
 metadata:
-  version: "0.2.0"
+  version: "0.2.1"
   author: "mojomast"
 ---
 
@@ -33,9 +33,13 @@ The complete bundled board is composed of directly materializable files (resolve
 - [Manifest/state authority module](templates/board/state.js)
 - [Board HTML](templates/board/public/index.html)
 - [Board browser logic](templates/board/public/app.js)
+- [Pure browser behavior helpers](templates/board/public/ui-helpers.js)
 - [Board styles](templates/board/public/app.css)
 - [Manifest, state, UI, and adaptation tests](templates/board/test/board.test.js)
 - [Route and smoke tests](templates/board/test/server.test.js)
+- [Pure UI behavior tests](templates/board/test/ui.test.js)
+- [Optional installed-browser smoke](templates/board/test/browser.optional.test.js)
+- [Published canonical digest vectors](templates/board/test/canonical-vectors.json)
 
 ## Capability contract
 

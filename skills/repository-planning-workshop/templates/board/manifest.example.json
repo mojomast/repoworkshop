@@ -1,45 +1,55 @@
 {
   "schemaVersion": 1,
-  "project": {
-    "displayName": "Repository Planning Workshop",
-    "subtitle": "Review scope, priorities, dependencies, risks, and open choices.",
-    "artifactBasename": "repository-planning-workshop",
-    "stateNamespace": "repository-planning-workshop"
+  "manifestVersion": 1,
+  "generatedAt": "2026-08-10T00:00:00.000Z",
+  "project": { "displayName": "Repository Planning Workshop", "slug": "repository-planning-workshop" },
+  "researchBaseline": {
+    "capturedAt": "2026-08-10T00:00:00.000Z",
+    "head": "0000000000000000000000000000000000000000",
+    "branch": "main",
+    "status": [],
+    "dirtyEvidence": [],
+    "exclusions": [".git"],
+    "commandEvidence": [],
+    "digest": "sha256:a68f5ae8ac558c5ca0d4b95b0058e4099ed0f553c4ece3903fc45be9ca736a15"
   },
-  "baseline": {
-    "identity": "example-main-at-0000000",
-    "digest": "0000000000000000000000000000000000000000000000000000000000000000"
-  },
-  "bounds": {
-    "maxBodyBytes": 262144,
-    "maxBlockers": 40,
-    "maxTextLength": 4096,
-    "maxNotesLength": 16000
-  },
-  "groups": [
-    { "id": "foundation", "label": "Foundation", "description": "Core capabilities and shared contracts." },
-    { "id": "delivery", "label": "Delivery", "description": "User-facing rollout and operational readiness." }
+  "baselineDigest": "sha256:a68f5ae8ac558c5ca0d4b95b0058e4099ed0f553c4ece3903fc45be9ca736a15",
+  "manifestDigest": "sha256:732041768f51bfe735f291138787c921073e03bcd1e84a29977b8cb756719827",
+  "limits": { "overallNotesMax": 8000, "epicNotesMax": 2000, "decisionCustomMax": 2000, "blockerNoteMax": 2000 },
+  "evidence": [
+    {
+      "id": "EVIDENCE-001", "type": "file-line", "capturedAt": "2026-08-10T00:00:00.000Z", "baselineDigest": "sha256:a68f5ae8ac558c5ca0d4b95b0058e4099ed0f553c4ece3903fc45be9ca736a15", "confidence": "high", "note": "Example evidence for template validation.", "redactedResult": "The project needs a stable planning contract.", "resultTruncated": false,
+      "path": "README.md", "startLine": 1, "endLine": 1, "revision": "0000000000000000000000000000000000000000", "contentSha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+    }
   ],
   "epics": [
     {
-      "id": "core-contract", "groupId": "foundation", "title": "Define the core contract", "summary": "Agree on stable inputs, outputs, and ownership boundaries.", "suggestedPriority": "P0", "dependencies": [], "dependencySummary": "No upstream dependency.", "riskSummary": "Ambiguous ownership can create rework."
+      "id": "EPIC-001", "title": "Define the core contract", "summary": "Agree on stable inputs, outputs, and ownership boundaries.", "classification": "missing", "evidenceIds": ["EVIDENCE-001"], "dependsOnEpicIds": [], "requiredDecisionIds": ["DEC-001"], "initialEnabled": true, "initialDisposition": "Build", "suggestedPriority": "P0", "priorityScore": 8,
+      "priorityBreakdown": { "impact": 3, "riskReduction": 2, "unblocks": 2, "confidence": 2, "costPenalty": -1 },
+      "scope": ["Define inputs, outputs, and ownership."], "exclusions": ["Implementation work"], "risks": ["Ambiguous ownership can create rework."]
     },
     {
-      "id": "validation-path", "groupId": "foundation", "title": "Build the validation path", "summary": "Add deterministic checks around the core contract.", "suggestedPriority": "P1", "dependencies": ["core-contract"], "dependencySummary": "Requires the core contract.", "riskSummary": "Fixtures must represent failure cases."
+      "id": "EPIC-002", "title": "Build the validation path", "summary": "Add deterministic checks around the core contract.", "classification": "missing", "evidenceIds": ["EVIDENCE-001"], "dependsOnEpicIds": ["EPIC-001"], "requiredDecisionIds": [], "initialEnabled": true, "initialDisposition": "Build", "suggestedPriority": "P1", "priorityScore": 7,
+      "priorityBreakdown": { "impact": 2, "riskReduction": 3, "unblocks": 1, "confidence": 2, "costPenalty": -1 },
+      "scope": ["Validate success and failure cases."], "exclusions": [], "risks": ["Fixtures must represent failure cases."]
     },
     {
-      "id": "guided-rollout", "groupId": "delivery", "title": "Prepare a guided rollout", "summary": "Document adoption, observability, and recovery steps.", "suggestedPriority": "P2", "dependencies": ["validation-path"], "dependencySummary": "Follows validated behavior.", "riskSummary": "Adoption may expose untested operating assumptions."
+      "id": "EPIC-003", "title": "Prepare a guided rollout", "summary": "Document adoption, observability, and recovery steps.", "classification": "missing", "evidenceIds": ["EVIDENCE-001"], "dependsOnEpicIds": ["EPIC-002"], "requiredDecisionIds": [], "initialEnabled": true, "initialDisposition": "Build", "suggestedPriority": "P2", "priorityScore": 4,
+      "priorityBreakdown": { "impact": 2, "riskReduction": 1, "unblocks": 0, "confidence": 2, "costPenalty": -1 },
+      "scope": ["Document rollout and recovery."], "exclusions": [], "risks": ["Adoption may expose operating assumptions."]
     }
   ],
   "decisions": [
     {
-      "id": "delivery-sequence", "prompt": "How should the first delivery be sequenced?", "required": true,
+      "id": "DEC-001", "title": "Delivery sequence", "prompt": "How should the first delivery be sequenced?", "required": true, "dependsOnDecisionIds": [], "evidenceIds": ["EVIDENCE-001"],
       "options": [
-        { "id": "thin-slice", "label": "Thin vertical slice", "tradeoff": "Tests the whole path early but limits initial breadth.", "recommended": true },
-        { "id": "foundation-first", "label": "Foundation first", "tradeoff": "Reduces contract churn but delays user feedback.", "recommended": false },
-        { "id": "parallel-tracks", "label": "Parallel tracks", "tradeoff": "May finish sooner but increases coordination cost.", "recommended": false }
-      ]
+        { "id": "DEC-001-OPT-01", "label": "Thin vertical slice", "implementationShape": "Deliver one end-to-end path first.", "benefits": ["Tests the whole path early."], "costsAndRisks": ["Limits initial breadth."], "migrationAndOperations": "Expand after validating the slice.", "evidenceIds": ["EVIDENCE-001"] },
+        { "id": "DEC-001-OPT-02", "label": "Foundation first", "implementationShape": "Complete shared contracts before UI delivery.", "benefits": ["Reduces contract churn."], "costsAndRisks": ["Delays user feedback."], "migrationAndOperations": "Roll out consumers after contracts stabilize.", "evidenceIds": ["EVIDENCE-001"] },
+        { "id": "DEC-001-OPT-03", "label": "Parallel tracks", "implementationShape": "Develop contracts and consumers concurrently.", "benefits": ["May finish sooner."], "costsAndRisks": ["Increases coordination cost."], "migrationAndOperations": "Integrate tracks behind validation gates.", "evidenceIds": ["EVIDENCE-001"] }
+      ],
+      "recommendedOptionId": "DEC-001-OPT-01", "recommendationRationale": "An end-to-end slice validates assumptions earliest.",
+      "customAnswer": { "allowed": true, "maxLength": 500, "validation": "single-line" }
     }
   ],
-  "initialBlockers": []
+  "blockers": []
 }

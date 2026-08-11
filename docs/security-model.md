@@ -15,7 +15,7 @@ RepoWorkshop is an instruction package with a bundled generic board template. Th
 - Define prohibited paths; never inspect/hash secrets or persist raw sensitive output.
 - Redact and byte-bound command evidence before storing/hashing it.
 - Copy the template into an approved project-local workshop boundary; never execute or write inside installed skill/plugin/cache paths. Store state outside `.git` under owner-only project workshop state. Revalidate containment and reject links/reparse points around every sensitive open/rename.
-- Render all repository/user content as text, validate strict schemas and request limits, and avoid remote assets.
+- Render repository/user content as DOM text and as escaped, indented plain-text blocks in `.txt` exports; neutralize markup/link/image/control syntax, validate strict schemas and request limits, and avoid remote assets.
 - Bind only exact loopback or one exact assigned RFC1918 address after trust confirmation. Never use wildcard binds.
 - Use a fresh high-entropy capability URL in LAN mode, exact Host, exact same-origin Origin for mutations, restrictive headers, concurrency/body/rate/time limits, and no token logging.
 - Verify executable/start-time/nonce identity before stopping a PID.
@@ -28,6 +28,6 @@ Public tunnels, public interfaces, VPN overlays, reverse proxies, or alternate a
 
 ## Denial of service and leakage
 
-Request limits, bounded state, rate/concurrency limits, and timeouts reduce but cannot eliminate denial of service from a LAN peer. Logs and checkpoints must contain only bounded operational metadata and logical aliases; readable exports must exclude absolute paths, secrets, raw command output, and capability tokens.
+Body/connection caps, four mutation slots, bounded state, and header/request/keep-alive timeouts limit one process's resource use but are not denial-of-service resistance. A LAN peer can still exhaust the process or network. Logs and checkpoints must contain only bounded operational metadata and logical aliases; readable exports must exclude absolute paths, secrets, raw command output, and capability tokens.
 
 Report specification flaws privately through [the security policy](../SECURITY.md).

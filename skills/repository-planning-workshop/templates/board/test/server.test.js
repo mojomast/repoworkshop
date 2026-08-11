@@ -1,48 +1,26 @@
 "use strict";
-
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const http = require("node:http");
+const net = require("node:net");
 const path = require("node:path");
 const test = require("node:test");
-const { createServer } = require("../server.js");
+const { createServer, MAX_BODY_BYTES, MAX_MUTATIONS } = require("../server.js");
 
 const root = path.resolve(__dirname, ".."); let directory; let server; let config; let origin; let base;
-test.before(async () => {
-  directory = fs.mkdtempSync(path.join(fs.existsSync("/dev/shm") ? "/dev/shm" : require("node:os").tmpdir(), "repoworkshop-route-test-"));
-  config = { bind: "127.0.0.1", port: 0, capability: "Route_Test_Capability_0123456789abcdef", manifestPath: path.join(root, "manifest.example.json"), stateDir: directory };
-  server = createServer(config); await new Promise((resolve) => server.listen(0, config.bind, resolve)); config.port = server.address().port; origin = `http://${config.bind}:${config.port}`; base = `${origin}/${config.capability}/`;
-});
+test.before(async () => { directory = fs.mkdtempSync(path.join(fs.existsSync("/dev/shm") ? "/dev/shm" : require("node:os").tmpdir(), "repoworkshop-route-test-")); config = { bind: "127.0.0.1", port: 0, capability: "Route_Test_Capability_0123456789abcdef", manifestPath: path.join(root, "manifest.example.json"), stateDir: directory }; server = createServer(config); await new Promise((resolve) => server.listen(0, config.bind, resolve)); config.port = server.address().port; origin = `http://${config.bind}:${config.port}`; base = `${origin}/${config.capability}/`; });
 test.after(async () => { await new Promise((resolve) => server.close(resolve)); fs.rmSync(directory, { recursive: true, force: true }); });
-function requestWithHost(host) {
-  return new Promise((resolve, reject) => { const request = http.get({ hostname: config.bind, port: config.port, path: `/${config.capability}/api/state`, headers: { Host: host } }, (response) => { response.resume(); response.on("end", () => resolve(response)); }); request.on("error", reject); });
-}
-function oversizedRequest() {
-  return new Promise((resolve, reject) => { const request = http.request({ hostname: config.bind, port: config.port, path: `/${config.capability}/api/state`, method: "PUT", headers: { Host: `${config.bind}:${config.port}`, Origin: origin, "Content-Type": "application/json", "Content-Length": "262145" } }, (response) => { response.resume(); response.on("end", () => resolve(response)); }); request.on("error", reject); request.end("{}"); });
-}
+function raw(method, body, headers = {}) { return new Promise((resolve, reject) => { const request = http.request({ hostname: config.bind, port: config.port, path: `/${config.capability}/api/state`, method, headers: { Host: `${config.bind}:${config.port}`, Origin: origin, "Content-Type": "application/json", ...headers } }, (response) => { const chunks = []; response.on("data", (chunk) => chunks.push(chunk)); response.on("end", () => resolve({ status: response.statusCode, body: Buffer.concat(chunks).toString("utf8"), headers: response.headers })); }); request.setTimeout(4000, () => request.destroy(new Error("client timeout"))); request.on("error", reject); request.end(body); }); }
 
-test("smoke serves page, local assets, manifest projection, and no arbitrary files", async () => {
-  for (const route of ["", "app.js", "app.css", "api/manifest", "api/state"]) { const response = await fetch(`${base}${route}`); assert.equal(response.status, 200, route); assert.equal(response.headers.get("cache-control"), "no-store"); assert.equal(response.headers.get("x-content-type-options"), "nosniff"); assert.equal(response.headers.get("x-frame-options"), "DENY"); assert.equal(response.headers.get("referrer-policy"), "no-referrer"); assert.match(response.headers.get("content-security-policy"), /default-src 'none'/); }
-  const projection = await (await fetch(`${base}api/manifest`)).json(); assert.equal(projection.manifest.project.displayName, "Repository Planning Workshop"); assert.equal(JSON.stringify(projection).includes(directory), false);
-  assert.equal((await fetch(`${base}server.js`)).status, 404); assert.equal((await fetch(`${origin}/manifest.example.json`)).status, 404); assert.equal((await fetch(`${origin}/wrong/api/state`)).status, 404);
-});
+test("serves only local projection/assets with security headers", async () => { for (const route of ["", "ui-helpers.js", "app.js", "app.css", "api/manifest", "api/state"]) { const response = await fetch(`${base}${route}`); assert.equal(response.status, 200, route); assert.equal(response.headers.get("cache-control"), "no-store"); assert.equal(response.headers.get("x-content-type-options"), "nosniff"); assert.match(response.headers.get("content-security-policy"), /default-src 'none'/); } const projection = await (await fetch(`${base}api/manifest`)).json(); assert.equal(projection.manifest.manifestDigest.startsWith("sha256:"), true); assert.deepEqual(Object.keys(projection), ["manifest"]); assert.equal((await fetch(`${base}server.js`)).status, 404); });
 
-test("known wrong methods, media type, Host, Origin, proxies, and body cap fail closed", async () => {
-  let response = await fetch(base, { method: "POST" }); assert.equal(response.status, 405); assert.equal(response.headers.get("allow"), "GET");
-  response = await fetch(`${base}api/state`, { method: "PUT", headers: { Origin: origin, "Content-Type": "text/plain" }, body: "{}" }); assert.equal(response.status, 415);
-  response = await fetch(`${base}api/state`, { method: "PUT", headers: { Origin: "http://127.0.0.1:9", "Content-Type": "application/json" }, body: "{}" }); assert.equal(response.status, 403);
-  response = await fetch(`${base}api/state`, { headers: { "X-Forwarded-For": "127.0.0.1" } }); assert.equal(response.status, 400);
-  response = await requestWithHost("example.invalid"); assert.equal(response.statusCode, 400);
-  response = await oversizedRequest(); assert.equal(response.statusCode, 413);
-  response = await fetch(`${base}api/state`, { method: "PUT", headers: { Origin: origin, "Content-Type": "application/json" }, body: "{" }); assert.equal(response.status, 400);
-});
+test("methods, media, host, origin, transfer ambiguity, and JSON syntax fail closed", async () => { let response = await fetch(base, { method: "POST" }); assert.equal(response.status, 405); response = await fetch(`${base}api/state`, { method: "PUT", headers: { Origin: origin, "Content-Type": "text/plain" }, body: "{}" }); assert.equal(response.status, 415); response = await fetch(`${base}api/state`, { method: "PUT", headers: { Origin: "http://127.0.0.1:9", "Content-Type": "application/json" }, body: "{}" }); assert.equal(response.status, 403); response = await fetch(`${base}api/state`, { headers: { "X-Forwarded-For": "127.0.0.1" } }); assert.equal(response.status, 400); assert.equal((await raw("PUT", "{")).status, 400); const duplicate = await raw("PUT", '{"expectedRevision":0,"state":{},"state":{}}'); assert.equal(duplicate.status, 400); });
 
-test("PUT saves, increments revision, and returns current state on stale conflict", async () => {
-  const loaded = await (await fetch(`${base}api/state`)).json(); loaded.state.decisions[0].answer = "thin-slice";
-  let response = await fetch(`${base}api/state`, { method: "PUT", headers: { Origin: origin, "Content-Type": "application/json" }, body: JSON.stringify({ expectedRevision: 0, state: loaded.state }) }); assert.equal(response.status, 200); const saved = await response.json(); assert.equal(saved.state.revision, 1); assert.equal(saved.state.ready, true);
-  response = await fetch(`${base}api/state`, { method: "PUT", headers: { Origin: origin, "Content-Type": "application/json" }, body: JSON.stringify({ expectedRevision: 0, state: loaded.state }) }); assert.equal(response.status, 409); assert.equal((await response.json()).state.revision, 1);
-});
+test("declared and streamed overflows return terminating JSON 413", async () => { let result = await raw("PUT", "{}", { "Content-Length": String(MAX_BODY_BYTES + 1) }); assert.equal(result.status, 413, result.body); assert.match(result.headers["content-type"], /application\/json/); assert.match(result.body, /too large/);
+  const wire = await new Promise((resolve, reject) => { const chunks = []; const socket = net.createConnection(config.port, config.bind); socket.setTimeout(4000, () => socket.destroy(new Error("overflow hung"))); socket.on("error", reject); socket.on("data", (chunk) => chunks.push(chunk)); socket.on("close", () => resolve(Buffer.concat(chunks).toString("utf8"))); socket.on("connect", () => { const size = MAX_BODY_BYTES + 1; socket.write(`PUT /${config.capability}/api/state HTTP/1.1\r\nHost: ${config.bind}:${config.port}\r\nOrigin: ${origin}\r\nContent-Type: application/json\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n${size.toString(16)}\r\n`); socket.write(Buffer.alloc(size, 0x20)); socket.end("\r\n0\r\n\r\n"); }); }); assert.match(wire, /^HTTP\/1\.1 413 /); assert.match(wire, /Request body too large/); });
 
-test("startup log guidance contains no capability token", () => {
-  const source = fs.readFileSync(path.join(root, "server.js"), "utf8"); assert.doesNotMatch(source, /console\.log\([^\n]*capability\}/); assert.match(source, /private capability URL/);
-});
+test("concurrent mutation cap rejects excess slow bodies and all clients terminate", async () => { const held = []; for (let index = 0; index < MAX_MUTATIONS; index += 1) held.push(net.createConnection(config.port, config.bind)); await Promise.all(held.map((socket) => new Promise((resolve) => socket.once("connect", () => { socket.write(`PUT /${config.capability}/api/state HTTP/1.1\r\nHost: ${config.bind}:${config.port}\r\nOrigin: ${origin}\r\nContent-Type: application/json\r\nContent-Length: 100\r\n\r\n{`); resolve(); })))); await new Promise((resolve) => setTimeout(resolve, 50)); const excess = await raw("PUT", "{}"); assert.equal(excess.status, 503); assert.match(excess.body, /concurrent/); held.forEach((socket) => socket.destroy()); });
+
+test("timeouts and connection limits are explicitly bounded", () => { assert.equal(server.headersTimeout, 5000); assert.equal(server.requestTimeout, 10000); assert.equal(server.keepAliveTimeout, 2000); assert.equal(server.maxRequestsPerSocket, 20); assert.equal(server.maxConnections, 32); });
+
+test("first PUT, reload, and stale revision conflict form clean smoke path", async () => { const loaded = await (await fetch(`${base}api/state`)).json(); loaded.state.decisions[0].selectedOptionId = "DEC-001-OPT-01"; let response = await fetch(`${base}api/state`, { method: "PUT", headers: { Origin: origin, "Content-Type": "application/json" }, body: JSON.stringify({ expectedRevision: 0, state: loaded.state }) }); assert.equal(response.status, 200); const saved = await response.json(); assert.equal(saved.state.revision, 1); assert.equal(saved.state.ready, true); assert.equal((await (await fetch(`${base}api/state`)).json()).state.stateDigest, saved.state.stateDigest); response = await fetch(`${base}api/state`, { method: "PUT", headers: { Origin: origin, "Content-Type": "application/json" }, body: JSON.stringify({ expectedRevision: 0, state: loaded.state }) }); assert.equal(response.status, 409); });

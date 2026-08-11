@@ -20,7 +20,7 @@ Before accepting an artifact, perform a case-insensitive stale-source-identifier
 - Compact domain/milestone rows; all proposed epics visible and enabled as Build initially.
 - Enable checkbox, Build/Remove/Defer/Need decision disposition, suggested priority/rationale, collapsed keyboard-accessible scope/risk/evidence.
 - Filters and counts for enabled/disposition/priority/blockers/unresolved decisions.
-- Blank decision selects, 2–4 researched options, visible unselected recommendation/tradeoffs, bounded custom answer.
+- Blank decision selects, 2–4 researched options, visible unselected recommendation/tradeoffs, and bounded custom drafts. Empty/whitespace Custom remains valid saved input but unanswered; optional unanswered choices do not block.
 - Blocker/readiness explanations that focus affected controls; bounded overall notes.
 - Safe readable export clearly marked non-authoritative.
 
@@ -32,7 +32,7 @@ Use the private OS state directory in [the lifecycle](workshop-lifecycle.md), no
 
 - Strictly validate exact content type, body/string/array limits, schema, unknown/duplicate/reordered IDs, enums, timestamps, digests, and readiness.
 - Require expected revision; stale writes conflict without mutation. Server/state module increments revision and sets timestamp.
-- Use owner-only same-directory exclusive temporary files, flush, atomic rename, and safe backup/recovery. Reject symlinks, reparse points, containment changes, and path races before every sensitive operation.
+- Use no-follow handles where supported, recheck post-open metadata, write through owner-only same-directory exclusive temporary handles, fsync/close, preserve a previously validated owner-only backup, atomically rename, and fsync the directory where supported. Clean only owned temporary names and recover prior valid state on failure. Reject symlinks, reparse points, containment changes, and path races before every sensitive operation.
 - Permit only required routes/methods (`405`, `415`, `413` as applicable). Escape text; never inject HTML or evaluate code.
 - Return generic client errors. Logs contain bounded operational metadata only—not state contents, repository snippets, secrets, tokens, absolute repository paths, or stack traces.
 
@@ -54,7 +54,7 @@ Start only the isolated board. Track actual PID plus executable/start-time/nonce
 
 ## Threat boundaries
 
-Assume malicious repository content can inject instructions; command output can contain credentials; saved browser input can contain HTML/script payloads; LAN peers can read/write/flood; files can be swapped with symlinks between checks; PIDs can be reused; Host/Origin can be spoofed outside browser guarantees; and logs/checkpoints can leak planning data. Enforce user/harness authority, bounded redaction, text-only rendering, request/body/rate/concurrency limits, timeouts, path revalidation, process identity, exact origin/host/capability checks, and owner-only storage. Do not store raw sensitive output in any public artifact. Rate limits mitigate denial of service but do not create trust.
+Assume malicious repository content can inject instructions; command output can contain credentials; saved browser input can contain HTML/script payloads; LAN peers can read/write/flood; files can be swapped with symlinks between checks; PIDs can be reused; Host/Origin can be spoofed outside browser guarantees; and logs/checkpoints can leak planning data. Enforce user/harness authority, bounded redaction, text-only rendering, request/body/concurrent-mutation/connection limits, strict timeouts, path revalidation, process identity, exact origin/host/capability checks, and owner-only storage. Do not store raw sensitive output in any public artifact. These controls bound one process but are not denial-of-service resistance and do not create trust.
 
 ## Validation
 

@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const skillRoot = path.join(root, "skills", "repository-planning-workshop");
 const skillFile = path.join(skillRoot, "SKILL.md");
-const currentVersion = "0.2.0";
+const currentVersion = "0.2.1";
 const currentLicense = "MIT";
 const errors = [];
 
@@ -52,9 +52,13 @@ const required = [
   "skills/repository-planning-workshop/templates/board/state.js",
   "skills/repository-planning-workshop/templates/board/public/index.html",
   "skills/repository-planning-workshop/templates/board/public/app.js",
+  "skills/repository-planning-workshop/templates/board/public/ui-helpers.js",
   "skills/repository-planning-workshop/templates/board/public/app.css",
   "skills/repository-planning-workshop/templates/board/test/board.test.js",
-  "skills/repository-planning-workshop/templates/board/test/server.test.js"
+  "skills/repository-planning-workshop/templates/board/test/server.test.js",
+  "skills/repository-planning-workshop/templates/board/test/ui.test.js",
+  "skills/repository-planning-workshop/templates/board/test/browser.optional.test.js",
+  "skills/repository-planning-workshop/templates/board/test/canonical-vectors.json"
 ];
 
 for (const relative of required) {
