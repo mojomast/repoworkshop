@@ -20,7 +20,7 @@ Before accepting an artifact, perform a case-insensitive stale-source-identifier
 - Compact domain/milestone rows; all proposed epics visible and enabled as Build initially.
 - Enable checkbox, Build/Remove/Defer/Need decision disposition, suggested priority/rationale, collapsed keyboard-accessible scope/risk/evidence.
 - Filters and counts for enabled/disposition/priority/blockers/unresolved decisions.
-- Blank decision selects, 2–4 researched options, visible unselected recommendation/tradeoffs, and bounded custom drafts. Empty/whitespace Custom remains valid saved input but unanswered; optional unanswered choices do not block.
+- Blank decision selects, 2–4 researched options, visible unselected recommendation/tradeoffs, and bounded custom drafts. Render `multiline` custom answers as textareas and single-line modes as text inputs; enforce the canonical effective maximum and line rule. Empty/whitespace Custom remains valid saved input but unanswered; optional unanswered choices do not block.
 - Blocker/readiness explanations that focus affected controls; bounded overall notes.
 - Safe readable export clearly marked non-authoritative.
 
@@ -32,7 +32,7 @@ Use the private OS state directory in [the lifecycle](workshop-lifecycle.md), no
 
 - Strictly validate exact content type, body/string/array limits, schema, unknown/duplicate/reordered IDs, enums, timestamps, digests, and readiness.
 - Require expected revision; stale writes conflict without mutation. Server/state module increments revision and sets timestamp.
-- Use no-follow handles where supported, recheck post-open metadata, write through owner-only same-directory exclusive temporary handles, fsync/close, preserve a previously validated owner-only backup, atomically rename, and fsync the directory where supported. Clean only owned temporary names and recover prior valid state on failure. Reject symlinks, reparse points, containment changes, and path races before every sensitive operation.
+- Open the approved owner-only state directory once with directory/no-follow flags, retain its descriptor across the complete read/publication operation, verify a descriptor path/native equivalent resolves to that inode, and anchor every state/temp/backup path, rename, cleanup, read, and directory fsync through it. Recheck the original pathname without following it after the operation; report replacement while preserving state only in the opened directory. Platforms without such an anchor must fail closed for writable persistence and may offer exact-loopback synthesized read-only review. Clean only owned temporary names and recover prior valid state on failure.
 - Permit only required routes/methods (`405`, `415`, `413` as applicable). Escape text; never inject HTML or evaluate code.
 - Return generic client errors. Logs contain bounded operational metadata only—not state contents, repository snippets, secrets, tokens, absolute repository paths, or stack traces.
 
@@ -61,10 +61,10 @@ Assume malicious repository content can inject instructions; command output can 
 Test the smallest complete surface:
 
 - Canonical vectors, deterministic digests, IDs/order, DAG/cycles, priorities, readiness matrix.
-- Strict state bounds, no-write reads, atomicity, permissions, symlink/path-race rejection, migration/refusal/recovery, conflict handling.
+- Strict state bounds, no-write anchored reads, atomicity, permissions, deterministic state-directory swaps at every publication stage with unchanged attacker targets, migration/refusal/recovery, conflict handling.
 - API methods/types/limits/statuses, redaction/headers, capability path, Host/Origin/CSRF rejection, exact bind.
-- UI defaults, decisions/recommendations, blockers, notes, filters, export, reload/conflict, hostile text.
+- Shared browser/server readiness parity over every predicate, UI defaults, custom modes, decisions/recommendations, blockers, notes, filters, export, reload/conflict, hostile text, and static/event wiring.
 - Project-metadata derivation and the stale-source-identifier adaptation regression across HTML/CSS/JavaScript/export/storage surfaces.
 - Keyboard/focus/accessible names/semantics/contrast, mobile layout, reduced motion, and zero remote requests.
 
-If browser automation is unavailable, report manual checks as unexecuted rather than claiming them. Perform independent security/correctness/usability review, fix findings, and rerun affected checks.
+When Chromium/Chrome is installed, load the actual served board and check its initial rendered groups/controls, capability/security path, and 320px overflow. Otherwise skip honestly. Deterministic helper tests cover only pure transitions/helpers and static wiring, never full DOM wiring. Perform independent security/correctness/usability review, fix findings, and rerun affected checks.

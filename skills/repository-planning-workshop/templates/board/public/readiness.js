@@ -1,0 +1,71 @@
+"use strict";
+
+/* This UMD module is the single readiness implementation used by Node and by
+ * the served board. Keep it pure so both environments evaluate identical data. */
+(function publish(root, factory) {
+  const readiness = factory();
+  if (typeof module === "object" && module.exports) module.exports = readiness;
+  else root.RepoWorkshopReadiness = readiness;
+})(globalThis, function createReadiness() {
+  function decisionAnswered(answer, source) {
+    if (answer.selectedOptionId !== null) return source.options.some((option) => option.id === answer.selectedOptionId);
+    return answer.customAnswer !== null && answer.customAnswer.trim().length > 0;
+  }
+
+  function requiredDecisionIds(state, manifest) {
+    const required = new Set(manifest.decisions.filter((item) => item.required).map((item) => item.id));
+    state.epics.forEach((answer, index) => {
+      if (answer.enabled && answer.disposition === "Build") manifest.epics[index].requiredDecisionIds.forEach((id) => required.add(id));
+    });
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const decision of manifest.decisions) {
+        if (!required.has(decision.id)) continue;
+        for (const dependency of decision.dependsOnDecisionIds) {
+          if (!required.has(dependency)) { required.add(dependency); changed = true; }
+        }
+      }
+    }
+    return required;
+  }
+
+  function computeReady(state, manifest) {
+    const failures = [];
+    const byEpic = new Map(state.epics.map((item) => [item.id, item]));
+    const byDecision = new Map(state.decisions.map((item) => [item.id, item]));
+    for (const epic of state.epics) {
+      if (epic.enabled && epic.disposition === "Need decision") failures.push({ code: "EPIC_DISPOSITION", targetId: epic.id, message: `${epic.id}: choose a final disposition` });
+      if (["Remove", "Defer"].includes(epic.disposition) && !epic.dispositionReason.trim()) failures.push({ code: "EPIC_REASON", targetId: epic.id, message: `${epic.id}: add a disposition reason` });
+      if (epic.enabled && epic.disposition === "Build") {
+        const source = manifest.epics.find((item) => item.id === epic.id);
+        const inspect = (dependencyId, trail = []) => {
+          const dependency = byEpic.get(dependencyId);
+          const chain = [...trail, dependencyId];
+          if (!dependency.enabled || dependency.disposition !== "Build") failures.push({ code: "BUILD_DEPENDENCY", targetId: epic.id, relatedId: dependencyId, message: `${epic.id}: required dependency ${dependencyId} must be enabled Build${chain.length > 1 ? ` (via ${chain.slice(0, -1).join(" -> ")})` : ""}` });
+          else manifest.epics.find((item) => item.id === dependencyId).dependsOnEpicIds.forEach((id) => inspect(id, chain));
+        };
+        source.dependsOnEpicIds.forEach((id) => inspect(id));
+        for (const decisionId of source.requiredDecisionIds) {
+          if (!decisionAnswered(byDecision.get(decisionId), manifest.decisions.find((item) => item.id === decisionId))) failures.push({ code: "DEPENDENCY_DECISION", targetId: decisionId, relatedId: epic.id, message: `${epic.id}: required dependency decision ${decisionId} is unanswered` });
+        }
+      }
+    }
+    for (const id of requiredDecisionIds(state, manifest)) {
+      const answer = byDecision.get(id);
+      const source = manifest.decisions.find((item) => item.id === id);
+      if (!decisionAnswered(answer, source) && !failures.some((item) => item.targetId === id)) failures.push({ code: "REQUIRED_DECISION", targetId: id, message: `${id}: required decision is unanswered` });
+    }
+    state.blockers.forEach((blocker, index) => {
+      if (!blocker.resolved || !blocker.resolutionNote.trim()) failures.push({ code: "BLOCKER", targetId: blocker.id, message: `${blocker.id}: resolve the blocker with a note` });
+      else {
+        const source = manifest.blockers[index];
+        if (source.resolutionPredicate === "all-decisions-answered" && source.decisionIds.some((id) => !decisionAnswered(byDecision.get(id), manifest.decisions.find((item) => item.id === id)))) failures.push({ code: "BLOCKER_CONTRADICTION", targetId: blocker.id, message: `${blocker.id}: referenced decisions remain unanswered` });
+        if (source.resolutionPredicate === "epics-disabled" && source.epicIds.some((id) => byEpic.get(id).enabled)) failures.push({ code: "BLOCKER_CONTRADICTION", targetId: blocker.id, message: `${blocker.id}: referenced epics remain enabled` });
+      }
+    });
+    return { ready: failures.length === 0, failures };
+  }
+
+  return { decisionAnswered, requiredDecisionIds, computeReady };
+});

@@ -3,6 +3,7 @@
 const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
+const { decisionAnswered, requiredDecisionIds, computeReady } = require("./public/readiness.js");
 
 const SHA = /^sha256:[0-9a-f]{64}$/;
 const EPIC_ID = /^EPIC-[0-9]{3,}$/;
@@ -186,32 +187,6 @@ function validateManifest(manifest) {
   return manifest;
 }
 
-function decisionAnswered(answer, source) {
-  if (answer.selectedOptionId !== null) return source.options.some((option) => option.id === answer.selectedOptionId);
-  return answer.customAnswer !== null && answer.customAnswer.trim().length > 0;
-}
-function requiredDecisionIds(state, manifest) {
-  const required = new Set(manifest.decisions.filter((item) => item.required).map((item) => item.id));
-  state.epics.forEach((answer, index) => { if (answer.enabled && answer.disposition === "Build") manifest.epics[index].requiredDecisionIds.forEach((id) => required.add(id)); });
-  let changed = true; while (changed) { changed = false; for (const decision of manifest.decisions) if (required.has(decision.id)) for (const dependency of decision.dependsOnDecisionIds) if (!required.has(dependency)) { required.add(dependency); changed = true; } }
-  return required;
-}
-function computeReady(state, manifest) {
-  const failures = []; const byEpic = new Map(state.epics.map((item) => [item.id, item])); const byDecision = new Map(state.decisions.map((item) => [item.id, item]));
-  for (const epic of state.epics) {
-    if (epic.enabled && epic.disposition === "Need decision") failures.push({ code: "EPIC_DISPOSITION", targetId: epic.id, message: `${epic.id}: choose a final disposition` });
-    if (["Remove", "Defer"].includes(epic.disposition) && !epic.dispositionReason.trim()) failures.push({ code: "EPIC_REASON", targetId: epic.id, message: `${epic.id}: add a disposition reason` });
-    if (epic.enabled && epic.disposition === "Build") {
-      const source = manifest.epics.find((item) => item.id === epic.id);
-      const inspect = (dependencyId, trail = []) => { const dependency = byEpic.get(dependencyId); const chain = [...trail, dependencyId]; if (!dependency.enabled || dependency.disposition !== "Build") failures.push({ code: "BUILD_DEPENDENCY", targetId: epic.id, relatedId: dependencyId, message: `${epic.id}: required dependency ${dependencyId} must be enabled Build${chain.length > 1 ? ` (via ${chain.slice(0, -1).join(" -> ")})` : ""}` }); else manifest.epics.find((item) => item.id === dependencyId).dependsOnEpicIds.forEach((id) => inspect(id, chain)); };
-      source.dependsOnEpicIds.forEach((id) => inspect(id));
-      for (const decisionId of source.requiredDecisionIds) if (!decisionAnswered(byDecision.get(decisionId), manifest.decisions.find((item) => item.id === decisionId))) failures.push({ code: "DEPENDENCY_DECISION", targetId: decisionId, relatedId: epic.id, message: `${epic.id}: required dependency decision ${decisionId} is unanswered` });
-    }
-  }
-  for (const id of requiredDecisionIds(state, manifest)) { const answer = byDecision.get(id); const source = manifest.decisions.find((item) => item.id === id); if (!decisionAnswered(answer, source) && !failures.some((item) => item.targetId === id)) failures.push({ code: "REQUIRED_DECISION", targetId: id, message: `${id}: required decision is unanswered` }); }
-  state.blockers.forEach((blocker, index) => { if (!blocker.resolved || !blocker.resolutionNote.trim()) failures.push({ code: "BLOCKER", targetId: blocker.id, message: `${blocker.id}: resolve the blocker with a note` }); else { const source = manifest.blockers[index]; if (source.resolutionPredicate === "all-decisions-answered" && source.decisionIds.some((id) => !decisionAnswered(byDecision.get(id), manifest.decisions.find((item) => item.id === id)))) failures.push({ code: "BLOCKER_CONTRADICTION", targetId: blocker.id, message: `${blocker.id}: referenced decisions remain unanswered` }); if (source.resolutionPredicate === "epics-disabled" && source.epicIds.some((id) => byEpic.get(id).enabled)) failures.push({ code: "BLOCKER_CONTRADICTION", targetId: blocker.id, message: `${blocker.id}: referenced epics remain enabled` }); } });
-  return { ready: failures.length === 0, failures };
-}
 function initialState(manifest, now = new Date().toISOString()) {
   validateManifest(manifest); const state = { schemaVersion: 1, baselineDigest: manifest.baselineDigest, manifestDigest: manifest.manifestDigest, stateDigest: "", revision: 0, updatedAt: now, ready: false, epics: manifest.epics.map((item) => ({ id: item.id, enabled: true, disposition: "Build", dispositionReason: "", notes: "" })), decisions: manifest.decisions.map((item) => ({ id: item.id, selectedOptionId: null, customAnswer: null, notes: "" })), blockers: manifest.blockers.map((item) => ({ id: item.id, resolved: false, resolutionNote: "" })), overallNotes: "" }; state.ready = computeReady(state, manifest).ready; state.stateDigest = stateDigest(state); return state;
 }
@@ -226,29 +201,81 @@ function approvedSelectionSnapshot(state, manifest) { validateState(state, manif
 function statePath(stateDir, slug) { return path.join(stateDir, `${slug}.state.json`); }
 function backupPath(stateDir, slug) { return path.join(stateDir, `${slug}.state.backup.json`); }
 function nofollow() { return fs.constants.O_NOFOLLOW || 0; }
-function safeDirectory(stateDir) { const stat = fs.lstatSync(stateDir); if (!stat.isDirectory() || stat.isSymbolicLink() || fs.realpathSync(stateDir) !== path.resolve(stateDir)) fail("state directory is unsafe"); if (process.platform !== "win32" && (stat.mode & 0o077)) fail("state directory must be owner-only"); return stat; }
 function safeParent(stateDir) { const parent = path.dirname(stateDir); const stat = fs.lstatSync(parent); if (!stat.isDirectory() || stat.isSymbolicLink() || fs.realpathSync(parent) !== path.resolve(parent)) fail("state directory parent is unsafe"); }
+function sameInode(left, right) { return left.dev === right.dev && left.ino === right.ino; }
+function descriptorDirectory(fd, opened) {
+  const candidates = process.platform === "linux" ? [`/proc/self/fd/${fd}`] : [`/dev/fd/${fd}`];
+  for (const candidate of candidates) {
+    try { if (sameInode(fs.statSync(candidate), opened)) return candidate; } catch {}
+  }
+  const error = new Error("writable persistence requires a verified descriptor-anchored directory path; use loopback read-only mode on this platform");
+  error.code = "REPOWORKSHOP_PERSISTENCE_UNSUPPORTED";
+  throw error;
+}
+function openStateDirectory(stateDir) {
+  if (!fs.constants.O_DIRECTORY || !fs.constants.O_NOFOLLOW) {
+    const error = new Error("writable persistence requires O_DIRECTORY and O_NOFOLLOW; use loopback read-only mode on this platform");
+    error.code = "REPOWORKSHOP_PERSISTENCE_UNSUPPORTED";
+    throw error;
+  }
+  const before = fs.lstatSync(stateDir);
+  if (!before.isDirectory() || before.isSymbolicLink() || (before.mode & 0o077) || fs.realpathSync(stateDir) !== path.resolve(stateDir)) fail("state directory is unsafe");
+  const fd = fs.openSync(stateDir, fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW);
+  try {
+    const opened = fs.fstatSync(fd);
+    if (!opened.isDirectory() || !sameInode(before, opened)) fail("state directory changed while opening");
+    const root = descriptorDirectory(fd, opened);
+    if (!sameInode(fs.statSync(root), opened)) fail("state directory descriptor verification failed");
+    return { fd, root, opened, pathname: stateDir };
+  } catch (error) { fs.closeSync(fd); throw error; }
+}
+function verifyOriginalDirectory(directory) {
+  let current;
+  try { current = fs.lstatSync(directory.pathname); } catch {
+    const error = new Error("state directory pathname was replaced during the operation; state remains only in the opened original directory");
+    error.code = "REPOWORKSHOP_STATE_DIR_REPLACED";
+    throw error;
+  }
+  if (!current.isDirectory() || current.isSymbolicLink() || !sameInode(current, directory.opened)) {
+    const error = new Error("state directory pathname was replaced during the operation; state remains only in the opened original directory");
+    error.code = "REPOWORKSHOP_STATE_DIR_REPLACED";
+    throw error;
+  }
+}
 function readRegular(file, manifest, allowMissing = false) {
   let handle; try { handle = fs.openSync(file, fs.constants.O_RDONLY | nofollow()); } catch (error) { if (allowMissing && error.code === "ENOENT") return null; throw error; }
   try { const stat = fs.fstatSync(handle); if (!stat.isFile() || (process.platform !== "win32" && (stat.mode & 0o077))) fail("state file must be a regular owner-only file"); return validateState(parseJsonStrict(decodeUtf8Strict(fs.readFileSync(handle))), manifest); } finally { fs.closeSync(handle); }
 }
-function loadState(stateDir, manifest) {
-  try { safeDirectory(stateDir); } catch (error) { if (error.code === "ENOENT") { safeParent(stateDir); return initialState(manifest); } throw error; }
-  const file = statePath(stateDir, manifest.project.slug); const backup = backupPath(stateDir, manifest.project.slug);
+function loadOpenedState(directory, manifest) {
+  const file = statePath(directory.root, manifest.project.slug); const backup = backupPath(directory.root, manifest.project.slug);
   try { const state = readRegular(file, manifest, true); return state || initialState(manifest); } catch (error) { const recovered = readRegular(backup, manifest, true); if (recovered) return recovered; throw error; }
 }
-function syncDirectory(directory) { if (process.platform === "win32") return; let handle; try { handle = fs.openSync(directory, fs.constants.O_RDONLY); fs.fsyncSync(handle); } catch (error) { if (!["EINVAL", "ENOTSUP", "EBADF"].includes(error.code)) throw error; } finally { if (handle !== undefined) fs.closeSync(handle); } }
+function loadState(stateDir, manifest) {
+  let directory;
+  try { directory = openStateDirectory(stateDir); } catch (error) { if (error.code === "ENOENT") { safeParent(stateDir); return initialState(manifest); } throw error; }
+  try { const state = loadOpenedState(directory, manifest); verifyOriginalDirectory(directory); return state; }
+  finally { fs.closeSync(directory.fd); }
+}
 function persistState(stateDir, manifest, candidate, expectedRevision, now = new Date().toISOString(), hooks = {}) {
-  let missing = false; try { safeDirectory(stateDir); } catch (error) { if (error.code !== "ENOENT") throw error; safeParent(stateDir); missing = true; }
-  const current = missing ? initialState(manifest) : loadState(stateDir, manifest); if (!Number.isSafeInteger(expectedRevision) || expectedRevision !== current.revision) return { conflict: true, state: current };
-  if (missing) fs.mkdirSync(stateDir, { mode: 0o700 }); safeDirectory(stateDir);
-  const next = structuredClone(candidate); next.schemaVersion = 1; next.baselineDigest = manifest.baselineDigest; next.manifestDigest = manifest.manifestDigest; next.revision = current.revision + 1; next.updatedAt = now; next.ready = computeReady(next, manifest).ready; next.stateDigest = stateDigest(next); validateState(next, manifest);
-  const file = statePath(stateDir, manifest.project.slug); const backup = backupPath(stateDir, manifest.project.slug); const temporary = path.join(stateDir, `.${manifest.project.slug}.${process.pid}.${crypto.randomBytes(8).toString("hex")}.tmp`); let handle;
+  let directory;
+  try { directory = openStateDirectory(stateDir); } catch (error) {
+    if (error.code === "ENOENT") { error.message = "state directory must be created owner-only before writable persistence"; error.code = "REPOWORKSHOP_PERSISTENCE"; }
+    throw error;
+  }
+  const stage = (name) => { if (hooks.onStage) hooks.onStage(name); };
+  try { stage("directory-opened"); } catch (error) { fs.closeSync(directory.fd); throw error; }
+  let current;
+  try { current = loadOpenedState(directory, manifest); } catch (error) { fs.closeSync(directory.fd); throw error; }
+  if (!Number.isSafeInteger(expectedRevision) || expectedRevision !== current.revision) { try { verifyOriginalDirectory(directory); return { conflict: true, state: current }; } finally { fs.closeSync(directory.fd); } }
+  let next;
+  try { next = structuredClone(candidate); next.schemaVersion = 1; next.baselineDigest = manifest.baselineDigest; next.manifestDigest = manifest.manifestDigest; next.revision = current.revision + 1; next.updatedAt = now; next.ready = computeReady(next, manifest).ready; next.stateDigest = stateDigest(next); validateState(next, manifest); }
+  catch (error) { fs.closeSync(directory.fd); throw error; }
+  const file = statePath(directory.root, manifest.project.slug); const backup = backupPath(directory.root, manifest.project.slug); const temporary = path.join(directory.root, `.${manifest.project.slug}.${process.pid}.${crypto.randomBytes(8).toString("hex")}.tmp`); let handle;
   try {
     // Preserve only a state already opened and fully validated through no-follow.
-    const prior = readRegular(file, manifest, true); if (prior) { const backupTemp = `${temporary}.backup`; let backupHandle; try { backupHandle = fs.openSync(backupTemp, fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_EXCL | nofollow(), 0o600); fs.writeFileSync(backupHandle, `${JSON.stringify(prior, null, 2)}\n`); fs.fsyncSync(backupHandle); fs.closeSync(backupHandle); backupHandle = undefined; fs.renameSync(backupTemp, backup); } finally { if (backupHandle !== undefined) fs.closeSync(backupHandle); try { fs.unlinkSync(backupTemp); } catch {} } }
-    handle = fs.openSync(temporary, fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_EXCL | nofollow(), 0o600); const opened = fs.fstatSync(handle); if (!opened.isFile() || (process.platform !== "win32" && (opened.mode & 0o077))) fail("temporary state file is unsafe"); fs.writeFileSync(handle, `${JSON.stringify(next, null, 2)}\n`); fs.fsyncSync(handle); if (hooks.beforePublish) hooks.beforePublish(); fs.closeSync(handle); handle = undefined; fs.renameSync(temporary, file); syncDirectory(stateDir);
-  } catch (error) { error.code = "REPOWORKSHOP_PERSISTENCE"; throw error; } finally { if (handle !== undefined) try { fs.closeSync(handle); } catch {} try { fs.unlinkSync(temporary); } catch {} }
+    const prior = readRegular(file, manifest, true); if (prior) { const backupTemp = `${temporary}.backup`; let backupHandle; try { stage("before-backup-write"); backupHandle = fs.openSync(backupTemp, fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_EXCL | nofollow(), 0o600); stage("backup-opened"); fs.writeFileSync(backupHandle, `${JSON.stringify(prior, null, 2)}\n`); fs.fsyncSync(backupHandle); stage("backup-synced"); fs.closeSync(backupHandle); backupHandle = undefined; stage("backup-closed"); stage("before-backup-publish"); fs.renameSync(backupTemp, backup); stage("backup-published"); } finally { if (backupHandle !== undefined) fs.closeSync(backupHandle); try { fs.unlinkSync(backupTemp); } catch {} } }
+    stage("before-state-write"); handle = fs.openSync(temporary, fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_EXCL | nofollow(), 0o600); stage("state-opened"); const opened = fs.fstatSync(handle); if (!opened.isFile() || (opened.mode & 0o077)) fail("temporary state file is unsafe"); fs.writeFileSync(handle, `${JSON.stringify(next, null, 2)}\n`); fs.fsyncSync(handle); stage("state-synced"); if (hooks.beforePublish) hooks.beforePublish(); fs.closeSync(handle); handle = undefined; stage("state-closed"); stage("before-state-publish"); fs.renameSync(temporary, file); stage("state-published"); stage("before-directory-sync"); fs.fsyncSync(directory.fd); stage("directory-synced"); verifyOriginalDirectory(directory);
+  } catch (error) { if (error.code !== "REPOWORKSHOP_STATE_DIR_REPLACED") error.code = "REPOWORKSHOP_PERSISTENCE"; throw error; } finally { if (handle !== undefined) try { fs.closeSync(handle); } catch {} try { fs.unlinkSync(temporary); } catch {} fs.closeSync(directory.fd); }
   return { conflict: false, state: next };
 }
 

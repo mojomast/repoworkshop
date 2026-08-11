@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const skillRoot = path.join(root, "skills", "repository-planning-workshop");
 const skillFile = path.join(skillRoot, "SKILL.md");
-const currentVersion = "0.2.1";
+const currentVersion = "0.2.2";
 const currentLicense = "MIT";
 const errors = [];
 
@@ -51,6 +51,7 @@ const required = [
   "skills/repository-planning-workshop/templates/board/server.js",
   "skills/repository-planning-workshop/templates/board/state.js",
   "skills/repository-planning-workshop/templates/board/public/index.html",
+  "skills/repository-planning-workshop/templates/board/public/readiness.js",
   "skills/repository-planning-workshop/templates/board/public/app.js",
   "skills/repository-planning-workshop/templates/board/public/ui-helpers.js",
   "skills/repository-planning-workshop/templates/board/public/app.css",
@@ -122,7 +123,7 @@ for (const absolute of files) {
 // Browser dependencies must remain local to the copied board and must exist.
 const publicRoot = path.join(boardRoot, "public");
 const htmlFile = path.join(publicRoot, "index.html");
-const browserFiles = [htmlFile, path.join(publicRoot, "app.js"), path.join(publicRoot, "app.css")];
+const browserFiles = [htmlFile, path.join(publicRoot, "readiness.js"), path.join(publicRoot, "ui-helpers.js"), path.join(publicRoot, "app.js"), path.join(publicRoot, "app.css")];
 for (const source of browserFiles) {
   const text = readText(source);
   if (/(?:https?:)?\/\//i.test(text)) errors.push(`${relative(source)}: remote or protocol-relative browser URL is forbidden`);

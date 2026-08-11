@@ -14,7 +14,7 @@ RepoWorkshop is an instruction package with a bundled generic board template. Th
 
 - Define prohibited paths; never inspect/hash secrets or persist raw sensitive output.
 - Redact and byte-bound command evidence before storing/hashing it.
-- Copy the template into an approved project-local workshop boundary; never execute or write inside installed skill/plugin/cache paths. Store state outside `.git` under owner-only project workshop state. Revalidate containment and reject links/reparse points around every sensitive open/rename.
+- Copy the template into an approved project-local workshop boundary; never execute or write inside installed skill/plugin/cache paths. Store state outside `.git` under an owner-only pre-created project workshop directory. Retain and verify a no-follow directory descriptor for every state read/publication path and rename; fail closed when the platform lacks a safe descriptor anchor.
 - Render repository/user content as DOM text and as escaped, indented plain-text blocks in `.txt` exports; neutralize markup/link/image/control syntax, validate strict schemas and request limits, and avoid remote assets.
 - Bind only exact loopback or one exact assigned RFC1918 address after trust confirmation. Never use wildcard binds.
 - Use a fresh high-entropy capability URL in LAN mode, exact Host, exact same-origin Origin for mutations, restrictive headers, concurrency/body/rate/time limits, and no token logging.

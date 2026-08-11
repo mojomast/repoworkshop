@@ -2,9 +2,9 @@
 name: repository-planning-workshop
 description: Use ONLY when the user explicitly requests a repository planning workshop, an interactive planning board, retrieval of saved workshop decisions, or conversion of those decisions into an actionable devplan. Do not trigger for ordinary repository research, implementation, or generic planning.
 license: MIT
-compatibility: Requires a capable file/Git harness; full hosting support targets POSIX Linux, macOS, or WSL. Network, browser, process, and delegation capabilities are optional with fail-closed fallbacks.
+compatibility: Requires a capable file/Git harness; writable bundled-board persistence requires a verified directory-descriptor path (Linux uses /proc/self/fd). Network, browser, process, and delegation capabilities are optional with fail-closed fallbacks.
 metadata:
-  version: "0.2.1"
+  version: "0.2.2"
   author: "mojomast"
 ---
 
@@ -33,6 +33,7 @@ The complete bundled board is composed of directly materializable files (resolve
 - [Manifest/state authority module](templates/board/state.js)
 - [Board HTML](templates/board/public/index.html)
 - [Board browser logic](templates/board/public/app.js)
+- [Shared server/browser readiness evaluator](templates/board/public/readiness.js)
 - [Pure browser behavior helpers](templates/board/public/ui-helpers.js)
 - [Board styles](templates/board/public/app.css)
 - [Manifest, state, UI, and adaptation tests](templates/board/test/board.test.js)

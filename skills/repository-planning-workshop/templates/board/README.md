@@ -1,6 +1,6 @@
 # Generic planning-board template
 
-This dependency-free, manifest-driven board is version 0.2.1. Copy the entire `board` directory into an approved project-local workshop directory before adapting or running it. Never execute it or write state in an installed skill, plugin, package-manager cache, or agent cache.
+This dependency-free, manifest-driven board is version 0.2.2. Copy the entire `board` directory into an approved project-local workshop directory before adapting or running it. Never execute it or write state in an installed skill, plugin, package-manager cache, or agent cache.
 
 ## Canonical authority
 
@@ -27,9 +27,9 @@ npm start
 
 Open `http://127.0.0.1:4173/$REPOWORKSHOP_CAPABILITY/` without logging or sharing it. The capability is defense-in-depth, not authentication, authorization, or encryption. Exact RFC1918 LAN binding requires the skill's explicit trust workflow.
 
-Saves use optimistic revisions, owner-only no-follow file handles where supported, post-open metadata checks, synced exclusive temporary files, validated prior-state backups, atomic same-directory rename, and directory sync where supported. Reads recover a prior valid backup if the final file is corrupt. The server also bounds body size, concurrent mutations, headers/request/keep-alive time, requests per socket, and connections. These are bounded single-process protections, **not denial-of-service resistance**.
+On Linux, saves open the approved state directory once with `O_DIRECTORY|O_NOFOLLOW`, verify `/proc/self/fd/<fd>` resolves to that inode, and anchor all reads, temporary/backup paths, renames, cleanup, and fsync through the retained descriptor. The original pathname is checked without following it after publication; replacement is reported while state stays only in the opened original directory. The owner-only state directory must exist before saving. Compatible `/dev/fd` platforms are detected; platforms without a verified equivalent fail closed. For a non-persisted manual loopback board there, set `REPOWORKSHOP_READ_ONLY=1`; GET returns synthesized revision 0 and PUT is rejected. The server's other bounds are single-process protections, **not denial-of-service resistance**.
 
-The UI remains manifest-driven and uses only local assets. Pure transition/filter/readiness/export tests always run under Node. The optional browser check uses an already installed Chromium/Chrome and prints an explicit skip when unavailable; it never downloads packages and a skip is not browser coverage.
+The UI remains manifest-driven and uses only local assets. One pure readiness module runs unchanged in Node and the browser. Deterministic tests cover pure transitions/helpers and static event wiring, not full DOM wiring. The optional check loads the actual served board in an already installed Chromium/Chrome, including a 320px overflow assertion, and prints an explicit skip when unavailable; it never downloads packages and a skip is not browser coverage.
 
 ## Adaptation audit
 
@@ -39,4 +39,4 @@ Replace the synthetic baseline, evidence, epics, decisions, and blockers, then r
 REPOWORKSHOP_SOURCE_IDENTIFIERS='old-display-name,old-product-slug,old-storage-key' npm test
 ```
 
-`REPOWORKSHOP_MANIFEST`, `REPOWORKSHOP_STATE_DIR`, `REPOWORKSHOP_BIND`, `REPOWORKSHOP_PORT`, and the required 32–160 character `REPOWORKSHOP_CAPABILITY` configure runtime behavior. Stop with `Ctrl-C` in the owning terminal and preserve canonical state before deleting a disposable copy.
+`REPOWORKSHOP_MANIFEST`, `REPOWORKSHOP_STATE_DIR`, `REPOWORKSHOP_BIND`, `REPOWORKSHOP_PORT`, optional exact `REPOWORKSHOP_READ_ONLY=1`, and the required 32–160 character `REPOWORKSHOP_CAPABILITY` configure runtime behavior. Read-only mode must remain on loopback because it is a manual fallback, not persistence or authentication. Stop with `Ctrl-C` in the owning terminal and preserve canonical state before deleting a disposable copy.

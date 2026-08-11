@@ -7,7 +7,7 @@
 
 RepoWorkshop is a portable [Agent Skill](https://agentskills.io/specification) and prompt/specification pack for OpenCode, Claude Code, Hermes Agent, and similarly capable harnesses. It tells an agent how to inspect a repository safely, synthesize cited options, generate an isolated compact planning board, retrieve validated saved decisions, and turn only approved work into a dependency-ordered plan.
 
-> **Status:** `0.2.1`. The generic planning-board template now shares the skill's canonical manifest, saved-state, digest, readiness, and retrieval contracts. Installed skill/plugin/cache files are never runtime or state locations.
+> **Status:** `0.2.2`. The generic planning-board template includes descriptor-anchored Linux persistence and one shared server/browser readiness evaluator. Installed skill/plugin/cache files are never runtime or state locations.
 
 ## What it produces
 
@@ -132,7 +132,7 @@ scripts/validate.mjs                  Dependency-free package validator
 
 ## Platforms and limitations
 
-The fully supported workflow target is POSIX on Linux, macOS, and WSL, where exact interface inspection, owner-only modes, atomic same-directory rename, and process identity checks can be implemented. Windows-native harnesses must supply documented safe equivalents or stop before hosting; workflow-only research and planning may still proceed. Delegation, browser automation, and LAN hosting are optional adaptations with explicit sequential, manual, or loopback fallbacks.
+Writable bundled-board persistence is supported where Node exposes `O_DIRECTORY`/`O_NOFOLLOW` and a verified descriptor directory path (Linux uses `/proc/self/fd`; compatible systems may provide `/dev/fd`). Other platforms fail closed for persistence and may use documented manual loopback read-only mode. Workflow-only research and planning remain portable. Delegation, browser automation, and LAN hosting are optional adaptations with explicit sequential, manual, or loopback fallbacks.
 
 Non-goals include turning the bundled local template into a universal/multi-user web app, exposing the main application, providing user authentication, tunneling publicly, replacing repository authority documents, or implementing approved work.
 

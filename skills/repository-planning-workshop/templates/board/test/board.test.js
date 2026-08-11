@@ -29,7 +29,7 @@ test("canonical manifest validates self projections and typed IDs", () => {
 });
 
 test("revision zero is synthesized only; first persisted state is revision one and retrievable", () => {
-  const manifest = fixture(); const parent = temporary(); const directory = path.join(parent, "state"); const state = stateModule.loadState(directory, manifest); assert.equal(state.revision, 0); assert.equal(fs.existsSync(directory), false); assert.doesNotThrow(() => stateModule.validateState(state, manifest, { allowSynthesized: true })); assert.throws(() => stateModule.validateState(state, manifest), /revision/);
+  const manifest = fixture(); const parent = temporary(); const directory = path.join(parent, "state"); const state = stateModule.loadState(directory, manifest); assert.equal(state.revision, 0); assert.equal(fs.existsSync(directory), false); assert.doesNotThrow(() => stateModule.validateState(state, manifest, { allowSynthesized: true })); assert.throws(() => stateModule.validateState(state, manifest), /revision/); assert.throws(() => stateModule.persistState(directory, manifest, state, 0), /created owner-only/); fs.mkdirSync(directory, { mode: 0o700 });
   answerRequired(state); const result = stateModule.persistState(directory, manifest, state, 0, "2026-08-11T00:00:00.000Z"); assert.equal(result.state.revision, 1); assert.equal(result.state.ready, true); assert.match(result.state.stateDigest, /^sha256:[0-9a-f]{64}$/); const snapshot = stateModule.approvedSelectionSnapshot(result.state, manifest); assert.equal(snapshot.sourceStateDigest, result.state.stateDigest); assert.equal(snapshot.epics[0].id, "EPIC-001"); assert.match(snapshot.snapshotDigest, /^sha256:/);
 });
 
@@ -44,15 +44,34 @@ test("empty custom remains saveable and unanswered while optional custom does no
   manifest.decisions[0].required = true; manifest.manifestDigest = stateModule.manifestDigest(manifest); const required = stateModule.initialState(manifest); required.decisions[0].customAnswer = " "; assert.equal(stateModule.computeReady(required, manifest).ready, false);
 });
 
+test("custom answer modes enforce effective limits and line patterns", () => {
+  const multilineManifest = fixture(); multilineManifest.decisions[0].customAnswer.validation = "multiline"; multilineManifest.decisions[0].customAnswer.maxLength = 12; multilineManifest.manifestDigest = stateModule.manifestDigest(multilineManifest); const multiline = stateModule.initialState(multilineManifest); multiline.decisions[0].customAnswer = "first\nsecond"; multiline.ready = true; multiline.stateDigest = stateModule.stateDigest(multiline); assert.doesNotThrow(() => stateModule.validateState(multiline, multilineManifest, { allowSynthesized: true }));
+  const singleManifest = fixture(); singleManifest.decisions[0].customAnswer.validation = "single-line"; singleManifest.manifestDigest = stateModule.manifestDigest(singleManifest); const single = stateModule.initialState(singleManifest); single.decisions[0].customAnswer = "first\nsecond"; single.stateDigest = stateModule.stateDigest(single); assert.throws(() => stateModule.validateState(single, singleManifest, { allowSynthesized: true }), /single-line/);
+  const limitedManifest = fixture(); limitedManifest.limits.decisionCustomMax = 5; limitedManifest.manifestDigest = stateModule.manifestDigest(limitedManifest); const limited = stateModule.initialState(limitedManifest); limited.decisions[0].customAnswer = "123456"; limited.stateDigest = stateModule.stateDigest(limited); assert.throws(() => stateModule.validateState(limited, limitedManifest, { allowSynthesized: true }), /bounded/);
+});
+
 test("durable publication keeps prior state and recovers validated backup", () => {
-  const manifest = fixture(); const directory = path.join(temporary(), "state"); const first = stateModule.initialState(manifest); answerRequired(first); const saved = stateModule.persistState(directory, manifest, first, 0).state; assert.equal(saved.revision, 1);
+  const manifest = fixture(); const directory = path.join(temporary(), "state"); fs.mkdirSync(directory, { mode: 0o700 }); const first = stateModule.initialState(manifest); answerRequired(first); const saved = stateModule.persistState(directory, manifest, first, 0).state; assert.equal(saved.revision, 1);
   const candidate = structuredClone(saved); candidate.overallNotes = "new"; assert.throws(() => stateModule.persistState(directory, manifest, candidate, 1, undefined, { beforePublish() { throw new Error("simulated publication failure"); } }), /simulated publication failure/); assert.equal(stateModule.loadState(directory, manifest).revision, 1);
   const file = stateModule.statePath(directory, manifest.project.slug); fs.writeFileSync(file, "corrupt", { mode: 0o600 }); assert.equal(stateModule.loadState(directory, manifest).revision, 1); assert.equal(fs.readdirSync(directory).some((name) => name.endsWith(".tmp")), false);
   const linked = path.join(temporary(), "linked"); fs.symlinkSync(directory, linked); assert.throws(() => stateModule.loadState(linked, manifest), /unsafe/);
 });
 
+test("every publication stage remains descriptor-anchored across state-directory swaps", { skip: process.platform !== "linux" && "descriptor race proof requires Linux /proc" }, () => {
+  const stages = ["directory-opened", "before-backup-write", "backup-opened", "backup-synced", "backup-closed", "before-backup-publish", "backup-published", "before-state-write", "state-opened", "state-synced", "state-closed", "before-state-publish", "state-published", "before-directory-sync", "directory-synced"];
+  for (const targetStage of stages) {
+    const manifest = fixture(); const parent = temporary(); const directory = path.join(parent, "state"); const attacker = path.join(parent, "attacker"); const original = path.join(parent, "opened-original");
+    fs.mkdirSync(directory, { mode: 0o700 }); fs.mkdirSync(attacker, { mode: 0o700 }); fs.writeFileSync(path.join(attacker, "target.txt"), "attacker sentinel\n", { mode: 0o600 });
+    const first = stateModule.initialState(manifest); answerRequired(first); const saved = stateModule.persistState(directory, manifest, first, 0).state; const candidate = structuredClone(saved); candidate.overallNotes = targetStage;
+    let swapped = false;
+    assert.throws(() => stateModule.persistState(directory, manifest, candidate, 1, undefined, { onStage(stage) { if (!swapped && stage === targetStage) { swapped = true; fs.renameSync(directory, original); fs.symlinkSync(attacker, directory, "dir"); } } }), /state directory pathname was replaced/);
+    assert.equal(swapped, true, targetStage); assert.equal(fs.readFileSync(path.join(attacker, "target.txt"), "utf8"), "attacker sentinel\n", targetStage); assert.deepEqual(fs.readdirSync(attacker), ["target.txt"], targetStage); assert.equal(stateModule.loadState(original, manifest).revision, 2, targetStage);
+  }
+});
+
 test("bind/configuration and no-follow manifest loading fail closed", () => {
   ["127.0.0.1", "10.1.2.3", "172.16.0.1", "192.168.5.4"].forEach((address) => assert.equal(isSafeBind(address), true)); ["0.0.0.0", "::", "localhost", "8.8.8.8", "172.32.0.1"].forEach((address) => assert.equal(isSafeBind(address), false)); assert.throws(() => loadConfig({ REPOWORKSHOP_BIND: "0.0.0.0", REPOWORKSHOP_CAPABILITY: "a".repeat(32) })); assert.equal(loadManifest(path.join(root, "manifest.example.json")).schemaVersion, 1);
+  assert.equal(loadConfig({ REPOWORKSHOP_BIND: "127.0.0.1", REPOWORKSHOP_CAPABILITY: "a".repeat(32), REPOWORKSHOP_READ_ONLY: "1" }).readOnly, true); assert.throws(() => loadConfig({ REPOWORKSHOP_BIND: "10.1.2.3", REPOWORKSHOP_CAPABILITY: "a".repeat(32), REPOWORKSHOP_READ_ONLY: "1" }), /loopback/);
   const link = path.join(temporary(), "manifest.json"); fs.symlinkSync(path.join(root, "manifest.example.json"), link); assert.throws(() => loadManifest(link));
 });
 

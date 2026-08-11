@@ -2,6 +2,22 @@
 
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.2.2 - 2026-08-11
+
+### Security
+
+- Anchored every state read, temporary, backup, rename, cleanup, and fsync operation to one retained and inode-verified state-directory descriptor, with deterministic swap-race coverage and fail-closed unsupported-platform behavior.
+
+### Fixed
+
+- Unified server and browser readiness in one isomorphic evaluator with predicate-complete parity coverage and authoritative-equivalent pre-save failures.
+- Rendered multiline and single-line custom answers with matching controls, limits, and validation behavior while preserving optional blank drafts.
+- Replaced the synthetic optional browser check with an actual served-board capability/security/DOM/320px smoke and clarified that deterministic tests cover pure helpers and static wiring only.
+
+### Changed
+
+- Updated active package, plugin, marketplace, validator, skill, security, and board documentation metadata to version 0.2.2.
+
 ## 0.2.1 - 2026-08-11
 
 ### Fixed

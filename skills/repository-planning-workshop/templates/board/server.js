@@ -4,11 +4,12 @@
 const fs = require("node:fs");
 const http = require("node:http");
 const path = require("node:path");
-const { parseJsonStrict, decodeUtf8Strict, validateManifest, loadState, persistState, computeReady } = require("./state.js");
+const { parseJsonStrict, decodeUtf8Strict, validateManifest, loadState, persistState, computeReady, initialState } = require("./state.js");
 
 const ROOT = __dirname;
 const ASSETS = Object.freeze({
   "": ["public/index.html", "text/html; charset=utf-8"],
+  "readiness.js": ["public/readiness.js", "text/javascript; charset=utf-8"],
   "ui-helpers.js": ["public/ui-helpers.js", "text/javascript; charset=utf-8"],
   "app.js": ["public/app.js", "text/javascript; charset=utf-8"],
   "app.css": ["public/app.css", "text/css; charset=utf-8"]
@@ -38,7 +39,9 @@ function loadConfig(environment = process.env) {
   if (typeof capability !== "string" || capability.length < 32 || capability.length > 160 || !/^[A-Za-z0-9_-]+$/.test(capability)) throw new Error("REPOWORKSHOP_CAPABILITY must contain at least 32 safe characters");
   const manifestPath = path.resolve(environment.REPOWORKSHOP_MANIFEST || path.join(ROOT, "manifest.example.json"));
   const stateDir = path.resolve(environment.REPOWORKSHOP_STATE_DIR || path.join(process.cwd(), ".repoworkshop"));
-  return { bind, port: Number(portText), capability, manifestPath, stateDir };
+  if (environment.REPOWORKSHOP_READ_ONLY !== undefined && environment.REPOWORKSHOP_READ_ONLY !== "1") throw new Error("REPOWORKSHOP_READ_ONLY must be 1 when set");
+  if (environment.REPOWORKSHOP_READ_ONLY === "1" && bind !== "127.0.0.1") throw new Error("manual read-only mode must bind exact loopback 127.0.0.1");
+  return { bind, port: Number(portText), capability, manifestPath, stateDir, readOnly: environment.REPOWORKSHOP_READ_ONLY === "1" };
 }
 function loadManifest(file) {
   let handle;
@@ -73,7 +76,7 @@ function readBody(request, response) {
 
 function createHandler(config, manifest) {
   const base = `/${config.capability}/`;
-  const known = new Map([[base, ["GET"]], [`${base}ui-helpers.js`, ["GET"]], [`${base}app.js`, ["GET"]], [`${base}app.css`, ["GET"]], [`${base}api/manifest`, ["GET"]], [`${base}api/state`, ["GET", "PUT"]]]);
+  const known = new Map([[base, ["GET"]], [`${base}readiness.js`, ["GET"]], [`${base}ui-helpers.js`, ["GET"]], [`${base}app.js`, ["GET"]], [`${base}app.css`, ["GET"]], [`${base}api/manifest`, ["GET"]], [`${base}api/state`, ["GET", "PUT"]]]);
   let activeMutations = 0;
   return async function handler(request, response) {
     let mutationSlot = false;
@@ -85,6 +88,7 @@ function createHandler(config, manifest) {
       const methods = known.get(pathname);
       if (!methods.includes(request.method)) return empty(response, 405, { Allow: methods.join(", ") });
       if (request.method === "PUT") {
+        if (config.readOnly) return jsonThenStop(request, response, 403, { error: "Board is in manual loopback read-only mode; persistence is disabled" });
         if (activeMutations >= MAX_MUTATIONS) return jsonThenStop(request, response, 503, { error: "Too many concurrent saves" }, { "Retry-After": "1" });
         activeMutations += 1; mutationSlot = true;
         if (request.headers.origin !== `http://${hostFor(config)}`) return empty(response, 403);
@@ -99,11 +103,15 @@ function createHandler(config, manifest) {
           const result = persistState(config.stateDir, manifest, payload.state, payload.expectedRevision);
           if (result.conflict) return json(response, 409, { error: "Revision conflict", state: result.state });
           return json(response, 200, { state: result.state, readinessFailures: computeReady(result.state, manifest).failures });
-        } catch (error) { return json(response, error.code === "REPOWORKSHOP_PERSISTENCE" ? 500 : 400, { error: error.code === "REPOWORKSHOP_PERSISTENCE" ? "State could not be saved" : "Invalid state" }); }
+        } catch (error) {
+          if (error.code === "REPOWORKSHOP_PERSISTENCE_UNSUPPORTED") return json(response, 503, { error: "Writable persistence is unavailable on this platform; restart on 127.0.0.1 with REPOWORKSHOP_READ_ONLY=1 for manual non-persisted review" });
+          if (error.code === "REPOWORKSHOP_STATE_DIR_REPLACED") return json(response, 500, { error: "State directory pathname was replaced; state was written only to the opened original directory" });
+          return json(response, error.code === "REPOWORKSHOP_PERSISTENCE" ? 500 : 400, { error: error.code === "REPOWORKSHOP_PERSISTENCE" ? "State could not be saved" : "Invalid state" });
+        }
       }
        if (pathname === `${base}api/manifest`) return json(response, 200, { manifest: publicManifest(manifest) });
       if (pathname === `${base}api/state`) {
-        try { const state = loadState(config.stateDir, manifest); return json(response, 200, { state, readinessFailures: computeReady(state, manifest).failures }); }
+        try { const state = config.readOnly ? initialState(manifest) : loadState(config.stateDir, manifest); return json(response, 200, { state, readinessFailures: computeReady(state, manifest).failures, readOnly: Boolean(config.readOnly) }); }
         catch { return json(response, 500, { error: "State unavailable" }); }
       }
       const asset = ASSETS[pathname === base ? "" : pathname.slice(base.length)];

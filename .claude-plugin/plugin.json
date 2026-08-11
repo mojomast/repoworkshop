@@ -1,7 +1,7 @@
 {
   "name": "repoworkshop",
   "description": "Evidence-driven repository planning workshops and interactive devplan generation.",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "author": {
     "name": "Mojomast",
     "url": "https://github.com/mojomast"
