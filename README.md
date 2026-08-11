@@ -9,6 +9,70 @@ RepoWorkshop is a portable [Agent Skill](https://agentskills.io/specification) a
 
 > **Status:** `0.2.2`. The generic planning-board template includes descriptor-anchored Linux persistence and one shared server/browser readiness evaluator. Installed skill/plugin/cache files are never runtime or state locations.
 
+## The problem it solves
+
+When you ask an AI agent to plan significant work on an existing codebase, it will typically either hallucinate a plan that ignores what's actually in the repo, or reflect your prompt back at you as structured bullet points. Neither is useful.
+
+RepoWorkshop forces the agent to **read the repository first**. Every option it surfaces in the planning board traces back to a specific file, commit, or command output in your actual codebase. You review and approve decisions in an interactive local board. Only approved, validated choices become tasks in the final devplan—nothing is inferred or invented.
+
+## When to use it
+
+RepoWorkshop fits best when you face a "we need to significantly evolve this system and I want a real plan, not vibes" moment:
+
+- **Refactoring a complex codebase** — the agent fans out research lanes across architecture, test coverage, dependencies, and tech debt, then surfaces 2–4 concrete options per unresolved decision. You approve each choice before anything becomes a task.
+- **Planning a major feature on an existing system** — instead of pasting context into chat and hoping the agent reads it all, the workshop generates a structured manifest of what's actually present, partial, or missing across the work you care about.
+- **Onboarding a new agent to an unfamiliar repo** — any compatible harness (OpenCode, Claude Code, Hermes) can resume an existing workshop checkpoint and pick up exactly where you left off, without re-running expensive research.
+- **Evaluating an inherited or third-party codebase** — run the workshop to get a classified, evidence-cited breakdown of what's production-ready, what's partial, and what's deferred before committing to build on top of it.
+- **Multi-agent parallel planning** — the board exposes a local JSON API with optimistic concurrency. Multiple agents can read the manifest simultaneously and write decisions without clobbering each other.
+
+RepoWorkshop is **not** the right tool for greenfield projects (nothing to research) or small single-file changes (the workflow overhead isn't worth it).
+
+## End-to-end walkthrough
+
+This is the full workflow for using RepoWorkshop to plan real work on an existing repository.
+
+### Step 1 — Install the skill
+
+Install for your harness (see [Install](#install) below), then open a session pointed at the repository you want to plan work on.
+
+### Step 2 — Run research and generate the board
+
+Trigger the skill with a natural-language request:
+
+> Use repository-planning-workshop to research this repository and generate an interactive planning board. Do not host it yet.
+
+The agent will:
+1. Capture a provenance baseline (Git status, HEAD, dirty files).
+2. Fan out read-only research lanes across architecture, tests, dependencies, authority docs, and relevant source.
+3. Synthesize typed, evidence-cited findings into a canonical manifest—each option tied to real file lines or command output.
+4. Copy the bundled board template into an isolated workshop directory and generate the manifest there.
+5. Run the board's test suite against the generated artifact to validate it before hosting.
+
+No writes happen outside the workshop output directory. Your working tree is never touched.
+
+### Step 3 — Host and review the board
+
+> Resume the repository planning workshop and host the existing board. Use loopback unless I affirm the exact detected LAN interface is trusted.
+
+The agent starts the local planning board at `http://127.0.0.1:4173/<token>/`. Open it in your browser. For each epic and decision the board presents:
+
+- Set dispositions: **Build**, **Defer**, **Remove**, or **Need decision**.
+- Answer required decisions by selecting from evidence-backed options (or writing a custom answer).
+- Resolve any blockers with a note.
+- Add overall and per-epic notes.
+
+The board saves your decisions locally on every save. It has no external dependencies, no remote assets, and no authentication—it is a local planning tool only.
+
+### Step 4 — Retrieve decisions and generate the devplan
+
+Once the board shows **Ready for implementation planning**:
+
+> The planning board is saved and ready. Retrieve its validated canonical decisions and create an actionable devplan.
+
+The agent loads decisions only through the validated state module—never by scraping the UI or parsing exports. It verifies digest integrity, checks for evidence drift, and builds a dependency-ordered (DAG) devplan that includes only the epics you approved as **Build**. Every milestone includes docs, tests, a coherent commit boundary, and a rollback plan.
+
+The devplan is the output you hand to your agents or use directly. RepoWorkshop never commits, pushes, or implements anything itself.
+
 ## What it produces
 
 1. Bounded, typed research findings tied to a dirty-file hash baseline.
