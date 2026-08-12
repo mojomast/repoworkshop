@@ -93,7 +93,7 @@ Canonicalize and digest exactly these validated projections. Preserve declared a
 ```text
 FileDigest { path: repo-path, sha256: sha256 }
 ToolVersion { name: string, version: string }
-ResearchInput { schemaVersion: 1, scope: [string], included: [repo-path], excluded: [repo-path], prohibited: [repo-path], instructions: [FileDigest sorted], authorities: [FileDigest sorted], baselineDigest: sha256 }
+ResearchInput { schemaVersion: 1, scope: [string], included: [repo-path], excluded: [repo-path], prohibited: [repo-path], instructions: [FileDigest sorted], authorities: [FileDigest sorted], intentDigest: sha256, baselineDigest: sha256 }
 GenerateInput { schemaVersion: 1, researchOutputDigest: sha256, contracts: [FileDigest sorted], toolVersions: [ToolVersion sorted] }
 HostInput { schemaVersion: 1, generateOutputDigest: sha256, stateRevision: safe-integer | null, stateDigest: sha256 | null, bind: { address: exact-ipv4, port: integer(1..65535) }, capabilityDigest: sha256 }
 BaselineComparison { baselineDigest: sha256, currentHead: full-git-id, currentBranch: string | null, relevantChanges: [repo-path sorted], unrelatedChanges: [repo-path sorted], verifiedDirtyEvidence: [{ path, revision, absence, bytes, sha256 }] }
@@ -101,7 +101,7 @@ RetrieveInput { schemaVersion: 1, generateOutputDigest: sha256, stateRevision: s
 PlanInput { schemaVersion: 1, retrieveOutputDigest: sha256, selectionSnapshotDigest: sha256, template: FileDigest, authorities: [FileDigest sorted] }
 ```
 
-Each phase's `outputDigest` hashes its complete ordered `outputs` array. Research covers bounded lane/synthesis records; Generate covers manifest and complete board artifact; Retrieve contains exactly one approved-selection snapshot; Plan exactly one devplan. Host may have no durable outputs, but still hashes `[]` and must have a live identity-checked process.
+Each phase's `outputDigest` hashes its complete ordered `outputs` array. Research covers bounded lane/synthesis records; Generate covers manifest and complete board artifact; Retrieve contains exactly one approved-selection snapshot; Plan exactly one devplan. Host may have no durable outputs, but still hashes `[]` and must have a live identity-checked process. `intentDigest` hashes the confirmed Intent Brief; editing intent stales Research and its transitive dependents.
 
 Dependencies are `Research -> Generate -> Retrieve -> Plan`; Host depends on Generate as an ephemeral side branch. Set a phase `running` and save atomically before work. Publish only complete validated output, then mark complete. Convert abandoned `running` phases to `interrupted`. Invalidate transitive dependents on input changes. A process exit stales Host only.
 

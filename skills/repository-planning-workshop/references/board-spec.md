@@ -18,9 +18,11 @@ Before accepting an artifact, perform a case-insensitive stale-source-identifier
 ## Compact accessible UI
 
 - Compact domain/milestone rows; all proposed epics visible with explicit reviewer acknowledgement required before Build work is ready.
-- Render the Intent Brief and require acknowledgement. Include enable checkbox, Build/Remove/Defer/Need decision disposition, suggested and reviewer-approved priority/rationale, collapsed keyboard-accessible problem/outcome/acceptance/change-map/scope/risk/evidence.
+- Render the Intent Brief and require acknowledgement of the brief exactly as written. Include enable checkbox, Build/Remove/Defer/Need decision disposition, suggested and reviewer-approved priority/rationale, collapsed keyboard-accessible problem/outcome/acceptance/change-map/scope/risk/evidence.
+- Render the actual evidence behind every `evidenceIds` reference—type, path/lines or source location, note, and confidence—from the served manifest; never show opaque IDs alone.
+- Readiness links open the containing details panel and focus the specific failing control, not the row's first input.
 - Filters and counts for enabled/disposition/priority/blockers/unresolved decisions.
-- Blank decision selects, 2–4 researched options, visible unselected recommendation/tradeoffs/evidence/option prerequisites, and bounded custom drafts. Require rationale and accepted risks for required selections; reject incompatible selected options. Render `multiline` custom answers as textareas and single-line modes as text inputs; enforce the canonical effective maximum and line rule. Empty/whitespace Custom remains valid saved input but unanswered; optional unanswered choices do not block.
+- Blank decision selects, 2–4 researched options, visible unselected recommendation/tradeoffs/evidence/option prerequisites, and bounded custom drafts. Require rationale and accepted risks for required selections; a selected nonblank Custom answer always requires a resolved interpretation with affected epics plus accepted risks, even for optional decisions. Reject incompatible selected options. Render `multiline` custom answers as textareas and single-line modes as text inputs; enforce the canonical effective maximum and line rule. Empty/whitespace Custom remains valid saved input but unanswered; optional unanswered choices do not block.
 - Blocker/readiness explanations that focus affected controls; bounded overall notes.
 - Safe readable export clearly marked non-authoritative.
 

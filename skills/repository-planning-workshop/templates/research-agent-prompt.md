@@ -24,6 +24,8 @@ Rules:
 - Include timestamp, baseline digest/revision, confidence, bounded redacted result, truncation flag, and required hashes. Never hash prohibited data.
 - Report dirty evidence revision/media accurately; distinguish unmerged index stages 1, 2, and 3 and absent stages.
 - A missing search result is not proof of absence. State scope and uncertainty.
+- For capability claims, trace at least one concrete execution path from an entrypoint to the component and cite it.
+- Before claiming a capability is missing or partial, list the disconfirming checks you ran (tests, callers, wiring, entrypoints) and their results.
 - Do not recursively delegate. External research is forbidden unless this is lane EX and explicitly authorized.
 
 External authorization/source constraints: [NONE OR DETAILS]

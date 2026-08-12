@@ -2,6 +2,22 @@
 
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.4.0 - 2026-08-12
+
+### Changed
+
+- The board now renders the actual evidence behind every reference (type, location, note, confidence) instead of opaque IDs, and readiness links open the details panel and focus the specific failing control.
+- The approved-selection snapshot now freezes the intent digest and selected-option epic prerequisites, so devplans consume the exact graph the reviewer approved.
+- Suggested priority no longer adds confidence to the score; confidence is reported as a separate uncertainty signal, and the score maps `7..8=P0`, `4..6=P1`, `2..3=P2`, otherwise `P3`.
+- Research inputs now include the intent digest, so editing the Intent Brief stales research and its dependents.
+- Selected nonblank custom answers now require a resolved interpretation with affected epics and accepted risks, even for optional decisions.
+
+### Added
+
+- A concrete synthesis-review gate: the agent presents the epic/decision table and intent digest for user confirmation before generating the board, and presents the drafted Intent Brief for confirm-or-edit before delegation.
+- Research guidance for minimum lane coverage (CC/AD/TO), execution-path tracing, disconfirming checks before missing/partial claims, epic granularity and milestone-formation rules, decision topological emission, and a default 12-epic proportionality cap with deferred overflow.
+- A sanitized worked example of the Intent Brief, evidence-chained epic, and option prerequisites.
+
 ## 0.3.0 - 2026-08-12
 
 ### Changed

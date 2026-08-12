@@ -81,7 +81,7 @@ Blocker {
 }
 ```
 
-`project` is explicit generation input. It defaults to `Repository Planning Workshop` / `repository-planning-workshop` unless the user intentionally supplies both values; board identity, export, persistence, UI copy/assets, and evidence-derived roadmap content use it as specified in [the board contract](board-spec.md). `manifestDigest` omits itself. `baselineDigest` equals the validated baseline self-digest. Validate all references, option membership/prefixes, bounds, and unique exact order. Epic and decision graphs are DAGs; manifest order breaks topological ties. `priorityScore` equals the breakdown sum and maps `8..10=P0`, `5..7=P1`, `2..4=P2`, otherwise `P3`.
+`project` is explicit generation input. It defaults to `Repository Planning Workshop` / `repository-planning-workshop` unless the user intentionally supplies both values; board identity, export, persistence, UI copy/assets, and evidence-derived roadmap content use it as specified in [the board contract](board-spec.md). `manifestDigest` omits itself. `baselineDigest` equals the validated baseline self-digest. Validate all references, option membership/prefixes, bounds, and unique exact order. Epic and decision graphs are DAGs; manifest order breaks topological ties. `priorityScore` equals impact + riskReduction + unblocks + costPenalty (confidence is reported separately and never raises priority) and maps `7..8=P0`, `4..6=P1`, `2..3=P2`, otherwise `P3`. The generator emits `decisions` in topological order so reviewers answer prerequisites first.
 
 ## Canonical saved state
 
@@ -100,7 +100,7 @@ BlockerAnswer { id: blocker-id, resolved: boolean, resolutionNote: bounded-strin
 
 The server/state boundary owns revision, timestamp, readiness, and `stateDigest`; clients cannot force them. Initial state uses exact manifest order, enables every epic as Build, leaves decisions unselected, blockers unresolved, and notes blank. Recommendations never initialize selection. A no-write GET may synthesize revision `0` solely as the optimistic predecessor for first save; it is not a `SavedState`. The first persisted save is revision `1`, and validation of persisted state rejects revision `0`.
 
-`selectedOptionId` is the authoritative predefined selection. `customAnswer=null` means Custom has not been selected; a non-null custom string records the selected/draft Custom control. Blank/whitespace Custom is valid and saveable but is unanswered. A retained custom draft may coexist with a predefined selection so switching controls does not destroy user input; the predefined selection is then authoritative. A nonblank custom answer must be allowed, bounded, and satisfy line policy. A decision is currently required when declared required, referenced by an enabled Build epic, or depended on by another required decision. `Remove` and `Defer` need reasons; enabled `Need decision` is never ready. Disabled epics remain stored but do not enter implementation dependencies.
+`selectedOptionId` is the authoritative predefined selection. `customAnswer=null` means Custom has not been selected; a non-null custom string records the selected/draft Custom control. Blank/whitespace Custom is valid and saveable but is unanswered. A retained custom draft may coexist with a predefined selection so switching controls does not destroy user input; the predefined selection is then authoritative. A nonblank custom answer must be allowed, bounded, and satisfy line policy. A selected nonblank Custom answer additionally requires `selectionRationale` recording the resolved interpretation and affected epics, and an `acceptedRisks` record, even when the decision is optional. A decision is currently required when declared required, referenced by an enabled Build epic, or depended on by another required decision. `Remove` and `Defer` need reasons; enabled `Need decision` is never ready. Disabled epics remain stored but do not enter implementation dependencies.
 
 A blocker predicate is satisfied only when its declared decision/epic/manual condition is true; resolution additionally requires `resolved=true` and a nonblank note. Contradictory resolutions are invalid.
 
@@ -114,12 +114,14 @@ Retrieve creates one immutable Plan input from fully validated `ready=true` stat
 
 ```text
 ApprovedSelectionSnapshot {
-  schemaVersion: 1, manifestDigest: sha256, baselineDigest: sha256,
+  schemaVersion: 1, manifestDigest: sha256, baselineDigest: sha256, intentDigest: sha256,
   sourceStateRevision: safe-integer, sourceStateDigest: sha256,
   epics: [EpicAnswer](exact order), decisions: [DecisionAnswer](exact order),
   blockers: [{ id: blocker-id, resolved: true, resolutionNote: nonblank-string }](exact order),
-  overallNotes: bounded-string, snapshotDigest: sha256
+  overallNotes: bounded-string,
+  selectedOptionDependencies: [{ optionId: option-id, dependsOnEpicIds: [epic-id] }],
+  snapshotDigest: sha256
 }
 ```
 
-Copy values exactly—no trimming, inference, recommendation substitution, or label expansion. `snapshotDigest` omits only itself. The canonical snapshot is the sole Retrieve output consumed by Plan.
+Copy values exactly—no trimming, inference, recommendation substitution, or label expansion. `intentDigest` hashes the manifest Intent Brief so Plan detects intent drift. `selectedOptionDependencies` freezes the option-derived epic prerequisites the reviewer approved; Plan consumes this exact effective graph instead of recomputing a different one. `snapshotDigest` omits only itself. The canonical snapshot is the sole Retrieve output consumed by Plan.

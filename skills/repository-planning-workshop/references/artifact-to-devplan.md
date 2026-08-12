@@ -19,9 +19,11 @@ Absent/corrupt/unknown/lossily migrated state, false readiness, unanswered requi
 - Record `Remove` and `Defer` with their reasons and dependency consequences.
 - Exclude disabled work regardless of initial defaults.
 - Never convert a recommendation, blank, note, or inferred preference into approval.
-- Carry safe custom answers verbatim and make implementation consequences explicit.
+- Carry safe custom answers verbatim together with their recorded resolved interpretation and accepted risks; make implementation consequences explicit. A custom answer without a recorded interpretation is a hard stop, not material for inference.
 
-Recompute the effective graph using epic prerequisites and selected-option prerequisites. Topologically sort it by reviewer-approved priority with manifest order as tie-breaker. Stop if included work depends on excluded work or selected options conflict; never silently re-include it.
+Use the snapshot's frozen effective graph: epic prerequisites plus its `selectedOptionDependencies`, verified against `intentDigest` and the manifest. Do not recompute a different graph at plan time. Topologically sort it by reviewer-approved priority with manifest order as tie-breaker. Stop if included work depends on excluded work or selected options conflict; never silently re-include it.
+
+Form milestones deliberately: default to one epic per milestone; group epics only when they share an owner and a change boundary and the grouping is justified in the plan. Discovery epics produced from `unknown` change-map entries remain separate milestones that gate the implementation work depending on them.
 
 ## Actionable milestones
 

@@ -51,6 +51,20 @@ test("selected option prerequisites and incompatibilities block readiness", () =
   const conflicting = structuredClone(manifest); const copy = structuredClone(conflicting.decisions[0]); copy.id = "DEC-002"; copy.required = false; copy.dependsOnDecisionIds = []; copy.options.forEach((option, index) => { option.id = `DEC-002-OPT-0${index + 1}`; option.incompatibleOptionIds = index === 0 ? ["DEC-001-OPT-01"] : []; }); copy.recommendedOptionId = "DEC-002-OPT-01"; conflicting.decisions.push(copy); conflicting.manifestDigest = stateModule.manifestDigest(conflicting); const board = stateModule.initialState(conflicting); answerRequired(board); board.decisions[1].selectedOptionId = "DEC-002-OPT-01"; assert.ok(stateModule.computeReady(board, conflicting).failures.some((item) => item.code === "OPTION_CONFLICT"));
 });
 
+test("selected custom answers require interpretation and accepted risks", () => {
+  const manifest = fixture(); manifest.decisions[0].required = false; manifest.epics[0].requiredDecisionIds = []; manifest.manifestDigest = stateModule.manifestDigest(manifest);
+  const state = stateModule.initialState(manifest); state.intentAcknowledged = true; state.epics.forEach((epic) => { epic.approvedPriority = "P1"; epic.approvalRationale = "Approved."; });
+  state.decisions[0].customAnswer = "Adopt the existing internal scheduler"; const codes = () => stateModule.computeReady(state, manifest).failures.map((item) => item.code);
+  assert.ok(codes().includes("CUSTOM_INTERPRETATION")); assert.ok(codes().includes("CUSTOM_RISK"));
+  state.decisions[0].selectionRationale = "Use the internal scheduler; affects EPIC-002."; state.decisions[0].acceptedRisks = "None"; assert.equal(stateModule.computeReady(state, manifest).ready, true);
+});
+
+test("snapshot freezes intent digest and selected option dependencies", () => {
+  const manifest = fixture(); const directory = path.join(temporary(), "state"); fs.mkdirSync(directory, { mode: 0o700 });
+  const state = stateModule.initialState(manifest); answerRequired(state); state.decisions[0].selectedOptionId = "DEC-001-OPT-02"; const saved = stateModule.persistState(directory, manifest, state, 0).state;
+  const snapshot = stateModule.approvedSelectionSnapshot(saved, manifest); assert.equal(snapshot.intentDigest, stateModule.hash(manifest.intent)); assert.deepEqual(snapshot.selectedOptionDependencies, [{ optionId: "DEC-001-OPT-02", dependsOnEpicIds: ["EPIC-001"] }]);
+});
+
 test("empty custom remains saveable and unanswered while optional custom does not block", () => {
   const manifest = fixture(); manifest.decisions[0].required = false; manifest.epics[0].requiredDecisionIds = []; manifest.manifestDigest = stateModule.manifestDigest(manifest); const state = stateModule.initialState(manifest); state.intentAcknowledged = true; state.epics.forEach((epic) => { epic.approvedPriority = "P1"; epic.approvalRationale = "Approved."; }); state.decisions[0].customAnswer = "   "; state.ready = true; state.stateDigest = stateModule.stateDigest(state); assert.equal(stateModule.computeReady(state, manifest).ready, true); assert.doesNotThrow(() => stateModule.validateState(state, manifest, { allowSynthesized: true }));
   manifest.decisions[0].required = true; manifest.manifestDigest = stateModule.manifestDigest(manifest); const required = stateModule.initialState(manifest); required.decisions[0].customAnswer = " "; assert.equal(stateModule.computeReady(required, manifest).ready, false);

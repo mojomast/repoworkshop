@@ -44,6 +44,7 @@ Cycle check: passed. Tie-breaker: canonical manifest order.
 - Exclusions: `<non-goals>`
 - Approved decisions: `<no inference>`
 - Change map: `<confirmed / likely / unknown boundaries with evidence; unknowns become discovery gates>`
+- Effort/horizon: `<epic effort class; delivery horizon; external dependency or none>`
 - Data/migration: `<additive schema/backfill/flag/rollout/cleanup or none>`
 - Command/projection constraints: `<authoritative writes/events/read models/consistency>`
 - Focused tests: `<commands and acceptance evidence>`

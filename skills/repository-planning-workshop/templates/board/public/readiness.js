@@ -36,10 +36,10 @@
     const byDecision = new Map(state.decisions.map((item) => [item.id, item]));
     if (!state.intentAcknowledged) failures.push({ code: "INTENT", targetId: "intent-acknowledgement", message: "Acknowledge the stated intent before approving scope" });
     for (const epic of state.epics) {
-      if (epic.enabled && epic.disposition === "Need decision") failures.push({ code: "EPIC_DISPOSITION", targetId: epic.id, message: `${epic.id}: choose a final disposition` });
-      if (["Remove", "Defer"].includes(epic.disposition) && !epic.dispositionReason.trim()) failures.push({ code: "EPIC_REASON", targetId: epic.id, message: `${epic.id}: add a disposition reason` });
-      if (epic.enabled && epic.disposition === "Build" && !epic.approvedPriority) failures.push({ code: "EPIC_PRIORITY", targetId: epic.id, message: `${epic.id}: approve an execution priority` });
-      if (epic.enabled && epic.disposition === "Build" && !epic.approvalRationale.trim()) failures.push({ code: "EPIC_APPROVAL", targetId: epic.id, message: `${epic.id}: record why this work is approved now` });
+      if (epic.enabled && epic.disposition === "Need decision") failures.push({ code: "EPIC_DISPOSITION", targetId: epic.id, control: "disposition", message: `${epic.id}: choose a final disposition` });
+      if (["Remove", "Defer"].includes(epic.disposition) && !epic.dispositionReason.trim()) failures.push({ code: "EPIC_REASON", targetId: epic.id, control: "disposition-reason", message: `${epic.id}: add a disposition reason` });
+      if (epic.enabled && epic.disposition === "Build" && !epic.approvedPriority) failures.push({ code: "EPIC_PRIORITY", targetId: epic.id, control: "approved-priority", message: `${epic.id}: approve an execution priority` });
+      if (epic.enabled && epic.disposition === "Build" && !epic.approvalRationale.trim()) failures.push({ code: "EPIC_APPROVAL", targetId: epic.id, control: "approval-rationale", message: `${epic.id}: record why this work is approved now` });
       if (epic.enabled && epic.disposition === "Build") {
         const source = manifest.epics.find((item) => item.id === epic.id);
         const inspect = (dependencyId, trail = []) => {
@@ -54,13 +54,19 @@
         }
       }
     }
-    for (const id of requiredDecisionIds(state, manifest)) {
+    const required = requiredDecisionIds(state, manifest);
+    for (const id of required) {
       const answer = byDecision.get(id);
       const source = manifest.decisions.find((item) => item.id === id);
       if (!decisionAnswered(answer, source) && !failures.some((item) => item.targetId === id)) failures.push({ code: "REQUIRED_DECISION", targetId: id, message: `${id}: required decision is unanswered` });
-      if (decisionAnswered(answer, source) && !answer.selectionRationale.trim()) failures.push({ code: "DECISION_RATIONALE", targetId: id, message: `${id}: record the selection rationale` });
-      if (decisionAnswered(answer, source) && !answer.acceptedRisks.trim()) failures.push({ code: "DECISION_RISK", targetId: id, message: `${id}: record accepted risks or 'None'` });
+      if (decisionAnswered(answer, source) && !answer.selectionRationale.trim()) failures.push({ code: "DECISION_RATIONALE", targetId: id, control: "selection-rationale", message: `${id}: record the selection rationale` });
+      if (decisionAnswered(answer, source) && !answer.acceptedRisks.trim()) failures.push({ code: "DECISION_RISK", targetId: id, control: "accepted-risks", message: `${id}: record accepted risks or 'None'` });
     }
+    state.decisions.forEach((answer) => {
+      if (required.has(answer.id) || answer.selectedOptionId !== null || !answer.customAnswer?.trim()) return;
+      if (!answer.selectionRationale.trim()) failures.push({ code: "CUSTOM_INTERPRETATION", targetId: answer.id, control: "selection-rationale", message: `${answer.id}: record the resolved interpretation and affected epics for the custom answer` });
+      if (!answer.acceptedRisks.trim()) failures.push({ code: "CUSTOM_RISK", targetId: answer.id, control: "accepted-risks", message: `${answer.id}: record accepted risks or 'None' for the custom answer` });
+    });
     const selected = new Set(state.decisions.map((answer) => answer.selectedOptionId).filter(Boolean));
     manifest.decisions.forEach((source, index) => { const selectedId = state.decisions[index].selectedOptionId; const option = source.options.find((item) => item.id === selectedId); if (option?.incompatibleOptionIds.some((id) => selected.has(id))) failures.push({ code: "OPTION_CONFLICT", targetId: source.id, message: `${source.id}: selected option conflicts with another selected option` }); option?.dependsOnEpicIds.forEach((id) => { const epic = byEpic.get(id); if (!epic.enabled || epic.disposition !== "Build") failures.push({ code: "OPTION_DEPENDENCY", targetId: id, relatedId: source.id, message: `${source.id}: selected option requires ${id} to be enabled Build` }); }); });
     state.blockers.forEach((blocker, index) => {
