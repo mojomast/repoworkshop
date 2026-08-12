@@ -15,17 +15,17 @@ Absent/corrupt/unknown/lossily migrated state, false readiness, unanswered requi
 
 ## Select and order work
 
-- Include implementation milestones only for enabled `Build` epics.
+- Include implementation milestones only for enabled `Build` epics whose explicit approval, priority, and rationale remain valid.
 - Record `Remove` and `Defer` with their reasons and dependency consequences.
 - Exclude disabled work regardless of initial defaults.
 - Never convert a recommendation, blank, note, or inferred preference into approval.
 - Carry safe custom answers verbatim and make implementation consequences explicit.
 
-Topologically sort by prerequisite edges with manifest order as tie-breaker. Stop if included work depends on excluded work; never silently re-include it.
+Recompute the effective graph using epic prerequisites and selected-option prerequisites. Topologically sort it by reviewer-approved priority with manifest order as tie-breaker. Stop if included work depends on excluded work or selected options conflict; never silently re-include it.
 
 ## Actionable milestones
 
-Use [the devplan template](../templates/devplan-template.md). Each independently verifiable milestone specifies outcome/IDs; topological basis; scope and non-goals; approved product/security/integration choices; likely files/services and shared hotspots; additive migration/backfill/flag/rollout/cleanup; command/event/read-model authority; focused tests and owning typecheck; security/operations/accessibility checks; authority documentation; verification evidence; rollback/recovery; coherent proposed commit; and a hard execution gate.
+Use [the devplan template](../templates/devplan-template.md). Each independently verifiable milestone carries the Intent Brief, demonstrated problem, outcome/acceptance criteria/IDs, topological basis, scope and non-goals, approved priority, selected product/security/integration rationale and accepted risks, confirmed/likely/unknown change map and shared hotspots, additive migration/backfill/flag/rollout/cleanup, command/event/read-model authority, focused tests and owning typecheck, security/operations/accessibility checks, authority documentation, verification evidence, rollback/recovery, coherent proposed commit, and a hard execution gate. Unknown boundaries that could materially affect implementation are discovery gates, not implementation claims.
 
 Commits are proposals only unless explicitly authorized. Documentation is required for every milestone and final closeout. Update existing authority rather than duplicating status. Do not paste a long plan into a compact handoff; ask before replacing an authoritative compact document.
 

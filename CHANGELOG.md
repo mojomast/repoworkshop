@@ -2,6 +2,15 @@
 
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.3.0 - 2026-08-12
+
+### Changed
+
+- Added an explicit intent brief, outcome/acceptance-oriented epics, evidence-to-intervention maps, effort/horizon/change-map context, and required reviewer acknowledgement before planning can be ready.
+- Require reviewer-approved Build priorities and rationale plus selected-decision rationale and accepted risks; selected option prerequisites and incompatibilities now participate in readiness.
+- Expanded the board review UI and devplan contract to show evidence/tradeoffs and carry approved outcomes, priorities, risks, and certainty boundaries into execution planning.
+- Require agents to ask a bounded clarification batch when material intent required to create a board is absent.
+
 ## 0.2.2 - 2026-08-11
 
 ### Security

@@ -44,21 +44,26 @@ Line evidence requires real bounds. Binary evidence is whole-file. History claim
 ```text
 Manifest {
   schemaVersion: 1, manifestVersion: integer(1..2147483647), generatedAt: rfc3339-utc,
-  project: ProjectMetadata,
+  project: ProjectMetadata, intent: IntentBrief,
   researchBaseline: ResearchBaseline, baselineDigest: sha256, manifestDigest: sha256,
   limits: { overallNotesMax: integer(1..8000), epicNotesMax: integer(1..2000), decisionCustomMax: integer(1..2000), blockerNoteMax: integer(1..2000) },
   evidence: [Evidence](0..4096), epics: [Epic](0..512), decisions: [Decision](0..256), blockers: [Blocker](0..256)
+}
+IntentBrief {
+  problem: string(1..2000), affectedActors: [string](1..32), successSignals: [string](1..32),
+  constraints: [string](0..32), nonGoals: [string](0..32), horizon: string(1..300)
 }
 ProjectMetadata {
   displayName: NFC string(1..120), slug: /^[a-z0-9]+(?:-[a-z0-9]+)*$/ length(1..80)
 }
 Epic {
-  id: epic-id, title: string(1..120), summary: string(0..1000), classification,
-  evidenceIds: [id](1..64), dependsOnEpicIds: [epic-id](0..64), requiredDecisionIds: [decision-id](0..64),
+  id: epic-id, title: string(1..120), summary: string(0..1000), problem: string, outcome: string, acceptanceSignals: [string](1..32), classification,
+  evidenceIds: [id](1..64), evidenceMap: { observation, hypothesis, intervention, uncertainty }, dependsOnEpicIds: [epic-id](0..64), requiredDecisionIds: [decision-id](0..64),
   initialEnabled: true, initialDisposition: "Build", suggestedPriority: priority,
   priorityScore: integer(-2..10),
   priorityBreakdown: { impact: 0..3, riskReduction: 0..3, unblocks: 0..2, confidence: 0..2, costPenalty: -2..0 },
-  scope: [string](1..64), exclusions: [string](0..64), risks: [string](0..64)
+  effort: "XS"|"S"|"M"|"L"|"XL"|"unknown", horizon: string, externalDependency: string|null,
+  scope: [string](1..64), exclusions: [string](0..64), risks: [string](0..64), changeMap: [{ boundary, confidence: "confirmed"|"likely"|"unknown", reason }]
 }
 Decision {
   id: decision-id, title: string, prompt: string, required: boolean,
@@ -68,7 +73,7 @@ Decision {
 }
 Option {
   id: option-id, label: string, implementationShape: string,
-  benefits: [string](1..16), costsAndRisks: [string](1..16), migrationAndOperations: string, evidenceIds: [id](1..64)
+  benefits: [string](1..16), costsAndRisks: [string](1..16), migrationAndOperations: string, evidenceIds: [id](1..64), dependsOnEpicIds: [epic-id](0..64), incompatibleOptionIds: [option-id](0..64)
 }
 Blocker {
   id: blocker-id, title: string, detail: string, epicIds: [epic-id], decisionIds: [decision-id], evidenceIds: [id](1..64),
@@ -84,11 +89,12 @@ Blocker {
 SavedState {
   schemaVersion: 1, baselineDigest: sha256, manifestDigest: sha256, stateDigest: sha256,
   revision: integer(1..9007199254740991), updatedAt: rfc3339-utc, ready: boolean,
+  intentAcknowledged: boolean,
   epics: [EpicAnswer](exact manifest order), decisions: [DecisionAnswer](exact order), blockers: [BlockerAnswer](exact order),
   overallNotes: string(0..limits.overallNotesMax)
 }
-EpicAnswer { id: epic-id, enabled: boolean, disposition, dispositionReason: string(0..1000), notes: bounded-string }
-DecisionAnswer { id: decision-id, selectedOptionId: option-id|null, customAnswer: bounded-string|null, notes: string(0..1000) }
+EpicAnswer { id: epic-id, enabled: boolean, disposition, dispositionReason: string(0..1000), approvedPriority: priority|null, approvalRationale: string(0..1000), notes: bounded-string }
+DecisionAnswer { id: decision-id, selectedOptionId: option-id|null, customAnswer: bounded-string|null, selectionRationale: string(0..1000), acceptedRisks: string(0..1000), notes: string(0..1000) }
 BlockerAnswer { id: blocker-id, resolved: boolean, resolutionNote: bounded-string }
 ```
 
@@ -98,7 +104,7 @@ The server/state boundary owns revision, timestamp, readiness, and `stateDigest`
 
 A blocker predicate is satisfied only when its declared decision/epic/manual condition is true; resolution additionally requires `resolved=true` and a nonblank note. Contradictory resolutions are invalid.
 
-`ready=true` iff schemas/digests/revision/order validate; enabled epics have final dispositions; Build dependencies and required decisions are answered; blockers are inactive; references resolve; both DAGs are acyclic; and no orphan answer exists. An explicitly approved empty Build scope may be ready. Recompute this exact predicate on every save/load.
+`ready=true` iff schemas/digests/revision/order validate; the reviewer acknowledged the Intent Brief; enabled epics have final dispositions; every Build epic has reviewer-approved priority and rationale; Build and selected-option dependencies are satisfied; required decisions have a selection rationale and accepted-risk record; no incompatible options are selected; blockers are inactive; references resolve; both DAGs are acyclic; and no orphan answer exists. An explicitly approved empty Build scope may be ready. Recompute this exact predicate on every save/load.
 
 Persist with optimistic expected revision, strict content type/body limits, no-follow opens where supported, post-open metadata checks, handle writes, temporary-file fsync, close, validated owner-only backup preservation, same-directory atomic replacement, and containing-directory fsync where supported. Clean only owned temporary names and retain/recover prior valid state after failed publication. Reads do not write. Unknown versions or digest mismatch stop. Migration is explicit, one-version, lossless, backup-preserving, and fully revalidated. A manifest change always clears readiness and requires review/save.
 

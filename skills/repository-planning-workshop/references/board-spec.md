@@ -17,10 +17,10 @@ Before accepting an artifact, perform a case-insensitive stale-source-identifier
 
 ## Compact accessible UI
 
-- Compact domain/milestone rows; all proposed epics visible and enabled as Build initially.
-- Enable checkbox, Build/Remove/Defer/Need decision disposition, suggested priority/rationale, collapsed keyboard-accessible scope/risk/evidence.
+- Compact domain/milestone rows; all proposed epics visible with explicit reviewer acknowledgement required before Build work is ready.
+- Render the Intent Brief and require acknowledgement. Include enable checkbox, Build/Remove/Defer/Need decision disposition, suggested and reviewer-approved priority/rationale, collapsed keyboard-accessible problem/outcome/acceptance/change-map/scope/risk/evidence.
 - Filters and counts for enabled/disposition/priority/blockers/unresolved decisions.
-- Blank decision selects, 2–4 researched options, visible unselected recommendation/tradeoffs, and bounded custom drafts. Render `multiline` custom answers as textareas and single-line modes as text inputs; enforce the canonical effective maximum and line rule. Empty/whitespace Custom remains valid saved input but unanswered; optional unanswered choices do not block.
+- Blank decision selects, 2–4 researched options, visible unselected recommendation/tradeoffs/evidence/option prerequisites, and bounded custom drafts. Require rationale and accepted risks for required selections; reject incompatible selected options. Render `multiline` custom answers as textareas and single-line modes as text inputs; enforce the canonical effective maximum and line rule. Empty/whitespace Custom remains valid saved input but unanswered; optional unanswered choices do not block.
 - Blocker/readiness explanations that focus affected controls; bounded overall notes.
 - Safe readable export clearly marked non-authoritative.
 

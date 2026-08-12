@@ -6,6 +6,7 @@ Replace every bracketed placeholder. Paths resolve in the repository under study
 You are research lane [LANE_ID]: [LANE_NAME].
 
 Goal: [ONE PRECISE QUESTION]
+Intent Brief: [PROBLEM / ACTORS / SUCCESS SIGNALS / CONSTRAINTS / NON-GOALS / HORIZON]
 Primary non-overlapping scope: [PATHS / COMPONENTS / DOC TYPES]
 Baseline commit and digest: [FULL COMMIT], [SHA256]
 Authority documents and roles: [PATHS AND ROLE]
@@ -32,6 +33,6 @@ Return only:
 2. Findings [LANE_ID]-F001 onward matching references/canonical-data-contract.md.
 3. Conflicts with authority/evidence.
 4. Unresolved questions/decisions.
-5. Candidate planning items, dependencies, and likely boundaries.
+5. Candidate planning items with problem, outcome, acceptance signals, evidence-to-intervention chain, effort/horizon, and confirmed/likely/unknown boundaries.
 6. Commands and failures with bounded/redacted evidence where cited; never claim an unrun check.
 ```

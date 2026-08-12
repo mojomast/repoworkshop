@@ -13,7 +13,7 @@ const fixture = () => stateModule.parseJsonStrict(fs.readFileSync(path.join(root
 const roots = [];
 function temporary() { const directory = fs.mkdtempSync(path.join(fs.existsSync("/dev/shm") ? "/dev/shm" : os.tmpdir(), "repoworkshop-board-test-")); roots.push(directory); return directory; }
 test.after(() => roots.splice(0).forEach((directory) => fs.rmSync(directory, { recursive: true, force: true })));
-function answerRequired(state) { state.decisions[0].selectedOptionId = "DEC-001-OPT-01"; state.ready = true; state.stateDigest = stateModule.stateDigest(state); }
+function answerRequired(state) { state.intentAcknowledged = true; state.epics.forEach((epic) => { epic.approvedPriority = "P1"; epic.approvalRationale = "Approved for the stated outcome."; }); state.decisions[0].selectedOptionId = "DEC-001-OPT-01"; state.decisions[0].selectionRationale = "Fits the stated outcome."; state.decisions[0].acceptedRisks = "None"; state.ready = stateModule.computeReady(state, fixture()).ready; state.stateDigest = stateModule.stateDigest(state); }
 
 test("published canonical vectors cover exact bytes, Unicode ordering, and strict rejection", () => {
   const vectors = JSON.parse(fs.readFileSync(path.join(__dirname, "canonical-vectors.json"), "utf8"));
@@ -35,17 +35,29 @@ test("revision zero is synthesized only; first persisted state is revision one a
 
 test("readiness reports direct, transitive, and dependency-decision targets", () => {
   const manifest = fixture(); const state = stateModule.initialState(manifest); answerRequired(state); assert.equal(stateModule.computeReady(state, manifest).ready, true);
-  state.epics[0].enabled = false; const failures = stateModule.computeReady(state, manifest).failures; assert.ok(failures.some((item) => item.targetId === "EPIC-002" && item.relatedId === "EPIC-001")); assert.ok(failures.some((item) => item.targetId === "EPIC-003" && item.relatedId === "EPIC-001" && /via EPIC-002/.test(item.message)));
+  state.epics[0].enabled = false; const failures = stateModule.computeReady(state, manifest).failures; assert.ok(failures.some((item) => item.targetId === "EPIC-001" && item.relatedId === "EPIC-002")); assert.ok(failures.some((item) => item.targetId === "EPIC-001" && item.relatedId === "EPIC-003" && /via EPIC-002/.test(item.message)));
   state.epics[0].enabled = true; state.decisions[0].selectedOptionId = null; assert.ok(stateModule.computeReady(state, manifest).failures.some((item) => item.targetId === "DEC-001" && item.relatedId === "EPIC-001"));
 });
 
+test("readiness requires intent, Build approval, and decision rationale", () => {
+  const manifest = fixture(); const state = stateModule.initialState(manifest); const failures = stateModule.computeReady(state, manifest).failures;
+  assert.ok(failures.some((item) => item.code === "INTENT")); assert.ok(failures.some((item) => item.code === "EPIC_PRIORITY"));
+  answerRequired(state); assert.equal(stateModule.computeReady(state, manifest).ready, true);
+  state.decisions[0].acceptedRisks = ""; assert.ok(stateModule.computeReady(state, manifest).failures.some((item) => item.code === "DECISION_RISK"));
+});
+
+test("selected option prerequisites and incompatibilities block readiness", () => {
+  const manifest = fixture(); const state = stateModule.initialState(manifest); answerRequired(state); state.epics[0].enabled = false; state.decisions[0].selectedOptionId = "DEC-001-OPT-02"; assert.ok(stateModule.computeReady(state, manifest).failures.some((item) => item.code === "OPTION_DEPENDENCY"));
+  const conflicting = structuredClone(manifest); const copy = structuredClone(conflicting.decisions[0]); copy.id = "DEC-002"; copy.required = false; copy.dependsOnDecisionIds = []; copy.options.forEach((option, index) => { option.id = `DEC-002-OPT-0${index + 1}`; option.incompatibleOptionIds = index === 0 ? ["DEC-001-OPT-01"] : []; }); copy.recommendedOptionId = "DEC-002-OPT-01"; conflicting.decisions.push(copy); conflicting.manifestDigest = stateModule.manifestDigest(conflicting); const board = stateModule.initialState(conflicting); answerRequired(board); board.decisions[1].selectedOptionId = "DEC-002-OPT-01"; assert.ok(stateModule.computeReady(board, conflicting).failures.some((item) => item.code === "OPTION_CONFLICT"));
+});
+
 test("empty custom remains saveable and unanswered while optional custom does not block", () => {
-  const manifest = fixture(); manifest.decisions[0].required = false; manifest.epics[0].requiredDecisionIds = []; manifest.manifestDigest = stateModule.manifestDigest(manifest); const state = stateModule.initialState(manifest); state.decisions[0].customAnswer = "   "; state.ready = true; state.stateDigest = stateModule.stateDigest(state); assert.equal(stateModule.computeReady(state, manifest).ready, true); assert.doesNotThrow(() => stateModule.validateState(state, manifest, { allowSynthesized: true }));
+  const manifest = fixture(); manifest.decisions[0].required = false; manifest.epics[0].requiredDecisionIds = []; manifest.manifestDigest = stateModule.manifestDigest(manifest); const state = stateModule.initialState(manifest); state.intentAcknowledged = true; state.epics.forEach((epic) => { epic.approvedPriority = "P1"; epic.approvalRationale = "Approved."; }); state.decisions[0].customAnswer = "   "; state.ready = true; state.stateDigest = stateModule.stateDigest(state); assert.equal(stateModule.computeReady(state, manifest).ready, true); assert.doesNotThrow(() => stateModule.validateState(state, manifest, { allowSynthesized: true }));
   manifest.decisions[0].required = true; manifest.manifestDigest = stateModule.manifestDigest(manifest); const required = stateModule.initialState(manifest); required.decisions[0].customAnswer = " "; assert.equal(stateModule.computeReady(required, manifest).ready, false);
 });
 
 test("custom answer modes enforce effective limits and line patterns", () => {
-  const multilineManifest = fixture(); multilineManifest.decisions[0].customAnswer.validation = "multiline"; multilineManifest.decisions[0].customAnswer.maxLength = 12; multilineManifest.manifestDigest = stateModule.manifestDigest(multilineManifest); const multiline = stateModule.initialState(multilineManifest); multiline.decisions[0].customAnswer = "first\nsecond"; multiline.ready = true; multiline.stateDigest = stateModule.stateDigest(multiline); assert.doesNotThrow(() => stateModule.validateState(multiline, multilineManifest, { allowSynthesized: true }));
+  const multilineManifest = fixture(); multilineManifest.decisions[0].customAnswer.validation = "multiline"; multilineManifest.decisions[0].customAnswer.maxLength = 12; multilineManifest.manifestDigest = stateModule.manifestDigest(multilineManifest); const multiline = stateModule.initialState(multilineManifest); multiline.intentAcknowledged = true; multiline.epics.forEach((epic) => { epic.approvedPriority = "P1"; epic.approvalRationale = "Approved."; }); multiline.decisions[0].customAnswer = "first\nsecond"; multiline.decisions[0].selectionRationale = "Custom."; multiline.decisions[0].acceptedRisks = "None"; multiline.ready = true; multiline.stateDigest = stateModule.stateDigest(multiline); assert.doesNotThrow(() => stateModule.validateState(multiline, multilineManifest, { allowSynthesized: true }));
   const singleManifest = fixture(); singleManifest.decisions[0].customAnswer.validation = "single-line"; singleManifest.manifestDigest = stateModule.manifestDigest(singleManifest); const single = stateModule.initialState(singleManifest); single.decisions[0].customAnswer = "first\nsecond"; single.stateDigest = stateModule.stateDigest(single); assert.throws(() => stateModule.validateState(single, singleManifest, { allowSynthesized: true }), /single-line/);
   const limitedManifest = fixture(); limitedManifest.limits.decisionCustomMax = 5; limitedManifest.manifestDigest = stateModule.manifestDigest(limitedManifest); const limited = stateModule.initialState(limitedManifest); limited.decisions[0].customAnswer = "123456"; limited.stateDigest = stateModule.stateDigest(limited); assert.throws(() => stateModule.validateState(limited, limitedManifest, { allowSynthesized: true }), /bounded/);
 });

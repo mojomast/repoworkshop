@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const skillRoot = path.join(root, "skills", "repository-planning-workshop");
 const skillFile = path.join(skillRoot, "SKILL.md");
-const currentVersion = "0.2.2";
+const currentVersion = "0.3.0";
 const currentLicense = "MIT";
 const errors = [];
 

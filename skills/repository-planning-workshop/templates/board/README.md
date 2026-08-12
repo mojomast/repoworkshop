@@ -1,10 +1,10 @@
 # Generic planning-board template
 
-This dependency-free, manifest-driven board is version 0.2.2. Copy the entire `board` directory into an approved project-local workshop directory before adapting or running it. Never execute it or write state in an installed skill, plugin, package-manager cache, or agent cache.
+This dependency-free, manifest-driven board is version 0.3.0. Copy the entire `board` directory into an approved project-local workshop directory before adapting or running it. Never execute it or write state in an installed skill, plugin, package-manager cache, or agent cache.
 
 ## Canonical authority
 
-`manifest.example.json` implements the canonical contract directly: typed `EPIC-###`, `DEC-###`, `DEC-###-OPT-##`, and `BLOCK-###` IDs; embedded research baseline and `baselineDigest`; `sha256:` digests; exact arrays; and a `manifestDigest` computed with only that member omitted. `state.js` supplies strict JSON parsing and canonicalization. It rejects duplicate object keys before ordinary parsing, non-NFC strings, lone surrogates, floats, unsafe integers, negative zero, unknown fields, bad references/order, and DAG cycles. Published deterministic examples are in `test/canonical-vectors.json`.
+`manifest.example.json` implements the canonical contract directly: an Intent Brief; outcome-based `EPIC-###` records; typed `DEC-###`, `DEC-###-OPT-##`, and `BLOCK-###` IDs; embedded research baseline and `baselineDigest`; `sha256:` digests; exact arrays; and a `manifestDigest` computed with only that member omitted. `state.js` supplies strict JSON parsing and canonicalization. It rejects duplicate object keys before ordinary parsing, non-NFC strings, lone surrogates, floats, unsafe integers, negative zero, unknown fields, bad references/order, and DAG cycles. Published deterministic examples are in `test/canonical-vectors.json`.
 
 GET with no saved file synthesizes an explicitly non-persisted revision `0` in memory and performs no write. The first explicit save is revision `1`; every persisted state includes its self-computed `stateDigest`. A validated ready revision can be passed to `approvedSelectionSnapshot()` for Retrieve/Plan. Review exports are inert `.txt` files marked `REVIEW ONLY - NON-AUTHORITATIVE`; they are never retrieval authority.
 
@@ -33,7 +33,7 @@ The UI remains manifest-driven and uses only local assets. One pure readiness mo
 
 ## Adaptation audit
 
-Replace the synthetic baseline, evidence, epics, decisions, and blockers, then recompute baseline/manifest self-digests through the canonical module. Never weaken validation to accept generated data. Keep exact IDs/order and project metadata (`displayName`, `slug`). Audit stale source identity with:
+Replace the synthetic intent, baseline, evidence, epics, decisions, and blockers, then recompute baseline/manifest self-digests through the canonical module. Never weaken validation to accept generated data. Keep exact IDs/order and project metadata (`displayName`, `slug`). Validate the generated manifest before hosting with `node -e 'const fs=require("node:fs"),s=require("./state.js");s.validateManifest(s.parseJsonStrict(fs.readFileSync("manifest.json","utf8")))'`. Audit stale source identity with:
 
 ```bash
 REPOWORKSHOP_SOURCE_IDENTIFIERS='old-display-name,old-product-slug,old-storage-key' npm test

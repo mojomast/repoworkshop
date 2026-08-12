@@ -13,12 +13,13 @@ Replace placeholders with repository-relative paths and safe logical state alias
 - Current repository: `<commit; branch>`
 - Freshness: `<evidence result; unrelated drift separately>`
 - Authority documents and roles: `<repository-relative paths>`
+- Intent Brief: `<problem; actors; success signals; constraints; non-goals; horizon>`
 
 ## Approved scope
 
-| ID | Outcome | Disposition | Selected decisions | Dependencies |
+| ID | Outcome/acceptance signals | Approved priority/rationale | Selected decisions/rationale/risks | Effective dependencies |
 | --- | --- | --- | --- | --- |
-| EPIC-001 | ... | Build | DEC-001=DEC-001-OPT-02 | ... |
+| EPIC-001 | ... | P1: ... | DEC-001=DEC-001-OPT-02: ... | ... |
 
 ## Excluded scope
 
@@ -36,11 +37,13 @@ Cycle check: passed. Tie-breaker: canonical manifest order.
 
 - IDs: `<enabled Build IDs only>`
 - Outcome: `<observable result>`
+- Problem and intent link: `<demonstrated problem; affected actors; intent success signal>`
+- Acceptance criteria: `<criterion | evidence/decision source | verification method | expected result>`
 - Dependencies/topological basis: `<prior milestones and reason>`
 - Scope: `<specific behavior/boundaries>`
 - Exclusions: `<non-goals>`
 - Approved decisions: `<no inference>`
-- Likely files/services: `<repository-relative paths/components; mark likely>`
+- Change map: `<confirmed / likely / unknown boundaries with evidence; unknowns become discovery gates>`
 - Data/migration: `<additive schema/backfill/flag/rollout/cleanup or none>`
 - Command/projection constraints: `<authoritative writes/events/read models/consistency>`
 - Focused tests: `<commands and acceptance evidence>`
