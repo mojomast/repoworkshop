@@ -2,6 +2,17 @@
 
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.5.0 - 2026-08-12
+
+### Changed
+
+- Added a proportional fast path: analysis-only requests stop after synthesis unless a board is explicitly requested or confirmed.
+- Reduced pre-delegation work to instructions and baseline metadata; authority/source reads, evidence hashing, detailed phase inventories, and unrelated-checkpoint inspection are deferred until needed.
+- Consolidated the default research taxonomy into at most three medium-depth lanes with bounded outputs of five material findings and three candidates each.
+- Reduced the default synthesis budget from 12 epics to 6 epics and 3 decisions, with expansion only for explicit exhaustive requests or materially coupled work.
+- Replaced repeated broad validation and multiple open-ended reviews with one stable-artifact validation pass, one focused cross-domain review, and affected-check reruns after fixes.
+- Directed coordinators to summarize agent reports and successful tests rather than reproducing verbose reports or logs, and to avoid repairing unrelated template defects during generation.
+
 ## 0.4.0 - 2026-08-12
 
 ### Changed

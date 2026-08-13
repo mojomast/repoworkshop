@@ -1,6 +1,6 @@
 # Generic planning-board template
 
-This dependency-free, manifest-driven board is version 0.4.0. Copy the entire `board` directory into an approved project-local workshop directory before adapting or running it. Never execute it or write state in an installed skill, plugin, package-manager cache, or agent cache.
+This dependency-free, manifest-driven board is version 0.5.0. Copy the entire `board` directory into an approved project-local workshop directory before adapting or running it. Never execute it or write state in an installed skill, plugin, package-manager cache, or agent cache.
 
 ## Canonical authority
 

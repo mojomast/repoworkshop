@@ -47,6 +47,8 @@ Reject unknown keys, malformed timestamps, duplicates, invalid bounds, noncanoni
 
 Capture after defining exclusions and before research. Never open or hash secrets, credentials, persisted personal/private content, prohibited paths, or Git objects known to contain them. If excluded content is required evidence, stop.
 
+Preflight capture is metadata-only: HEAD, branch, complete porcelain status, exclusions, and only command evidence actually needed to establish the baseline. Do not inspect recent history, read authority/source content, hash clean files, or populate speculative command evidence before delegation. Hash dirty revisions only if a lane uses them as evidence; hash clean evidence files only when promoted into synthesis or a phase projection requires them.
+
 ```text
 ResearchBaseline {
   capturedAt: rfc3339-utc,
@@ -102,6 +104,8 @@ PlanInput { schemaVersion: 1, retrieveOutputDigest: sha256, selectionSnapshotDig
 ```
 
 Each phase's `outputDigest` hashes its complete ordered `outputs` array. Research covers bounded lane/synthesis records; Generate covers manifest and complete board artifact; Retrieve contains exactly one approved-selection snapshot; Plan exactly one devplan. Host may have no durable outputs, but still hashes `[]` and must have a live identity-checked process. `intentDigest` hashes the confirmed Intent Brief; editing intent stales Research and its transitive dependents.
+
+Chat-only Research with no resume request may keep its baseline and findings in-session without a durable checkpoint. Otherwise create a minimal `running` checkpoint before a durable phase, then fill complete inputs, outputs, hashes, and byte counts when publishing validated output. Do not compute Generate/Host/Retrieve/Plan projections before their inputs exist. A checkpoint from another repository identity may be rejected from envelope metadata alone; do not open its state, logs, or outputs to prove irrelevance.
 
 Dependencies are `Research -> Generate -> Retrieve -> Plan`; Host depends on Generate as an ephemeral side branch. Set a phase `running` and save atomically before work. Publish only complete validated output, then mark complete. Convert abandoned `running` phases to `interrupted`. Invalidate transitive dependents on input changes. A process exit stales Host only.
 

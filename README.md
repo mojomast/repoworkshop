@@ -7,7 +7,7 @@
 
 RepoWorkshop is a portable [Agent Skill](https://agentskills.io/specification) and prompt/specification pack for OpenCode, Claude Code, Hermes Agent, and similarly capable harnesses. It tells an agent how to inspect a repository safely, synthesize cited options, generate an isolated compact planning board, retrieve validated saved decisions, and turn only approved work into a dependency-ordered plan.
 
-> **Status:** `0.4.0`. The generic planning-board template includes descriptor-anchored Linux persistence, explicit intent/scope approval, and one shared server/browser readiness evaluator. Installed skill/plugin/cache files are never runtime or state locations.
+> **Status:** `0.5.0`. The workflow defaults to a proportional fast path: metadata-only preflight, at most three consolidated research lanes, concise findings, and delta-focused validation. The generic board retains descriptor-anchored Linux persistence and shared server/browser readiness. Installed skill/plugin/cache files are never runtime or state locations.
 
 ## The problem it solves
 
@@ -19,7 +19,7 @@ RepoWorkshop forces the agent to **read the repository first**. Every option it 
 
 RepoWorkshop fits best when you face a "we need to significantly evolve this system and I want a real plan, not vibes" moment:
 
-- **Refactoring a complex codebase** — the agent fans out research lanes across architecture, test coverage, dependencies, and tech debt, then surfaces 2–4 concrete options per unresolved decision. You approve each choice before anything becomes a task.
+- **Refactoring a complex codebase** — the agent normally uses three bounded lanes covering product, architecture/security, and quality/operations, then surfaces 2–4 concrete options per unresolved decision. You approve each choice before anything becomes a task.
 - **Planning a major feature on an existing system** — instead of pasting context into chat and hoping the agent reads it all, the workshop generates a structured manifest of what's actually present, partial, or missing across the work you care about.
 - **Onboarding a new agent to an unfamiliar repo** — any compatible harness (OpenCode, Claude Code, Hermes) can resume an existing workshop checkpoint and pick up exactly where you left off, without re-running expensive research.
 - **Evaluating an inherited or third-party codebase** — run the workshop to get a classified, evidence-cited breakdown of what's production-ready, what's partial, and what's deferred before committing to build on top of it.
@@ -43,12 +43,14 @@ Trigger the skill with a natural-language request:
 
 The agent will:
 1. Capture a provenance baseline (Git status, HEAD, dirty files).
-2. Fan out read-only research lanes across architecture, tests, dependencies, authority docs, and relevant source.
+2. Fan out up to three concise read-only research lanes across product/capabilities, architecture/security, and tests/operations/repository health.
 3. Synthesize typed, evidence-cited findings into a canonical manifest—each option tied to real file lines or command output.
 4. Copy the bundled board template into an isolated workshop directory and generate the manifest there.
 5. Run the board's test suite against the generated artifact to validate it before hosting.
 
-No writes happen outside the workshop output directory. Your working tree is never touched.
+Application and unrelated files are never modified. Generated board files stay inside the approved workshop boundary; resumable checkpoints and canonical decisions use the documented owner-only private state boundary.
+
+For analysis-only requests, the default fast path stops after the compact synthesis and does not generate a board. Before delegation it reads only instructions and baseline metadata; detailed repository content, evidence hashes, and phase projections are deferred until needed. By default each lane returns at most five material findings, and synthesis is capped at six epics and three decisions unless broader coverage is explicitly requested or materially necessary.
 
 ### Step 3 — Host and review the board
 

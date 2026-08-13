@@ -1,6 +1,6 @@
 # Example: Intent Brief and Epic (sanitized)
 
-This compact worked example shows the 0.4.0 planning fields filled for a realistic repository change. Values are illustrative and sanitized.
+This compact worked example shows the 0.5.0 planning fields filled for a realistic repository change. Values are illustrative and sanitized.
 
 ## Intent Brief (confirmed by the user before research)
 

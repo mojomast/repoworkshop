@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const skillRoot = path.join(root, "skills", "repository-planning-workshop");
 const skillFile = path.join(skillRoot, "SKILL.md");
-const currentVersion = "0.4.0";
+const currentVersion = "0.5.0";
 const currentLicense = "MIT";
 const errors = [];
 
@@ -179,7 +179,8 @@ function unquote(value) {
 }
 
 try {
-  const frontmatter = parseSimpleFrontmatter(readText(skillFile));
+  const skillText = readText(skillFile);
+  const frontmatter = parseSimpleFrontmatter(skillText);
   const allowed = new Set(["name", "description", "license", "compatibility", "metadata", "allowed-tools"]);
   for (const key of Object.keys(frontmatter)) {
     if (!allowed.has(key)) errors.push(`SKILL.md: non-portable frontmatter field: ${key}`);
@@ -199,6 +200,15 @@ try {
   }
   if (frontmatter.metadata?.version !== currentVersion || frontmatter.metadata?.author !== "mojomast") {
     errors.push(`SKILL.md: expected version ${currentVersion} and author mojomast metadata`);
+  }
+  for (const requiredPolicy of [
+    "Run a minimal preflight only",
+    "Use at most three consolidated research lanes by default",
+    "Cap the default synthesis at 6 epics and 3 decisions",
+    "For chat-only analysis with no resume request",
+    "Validate once per stable artifact"
+  ]) {
+    if (!skillText.includes(requiredPolicy)) errors.push(`SKILL.md: missing efficiency policy: ${requiredPolicy}`);
   }
 } catch (error) {
   errors.push(`SKILL.md: ${error.message}`);
@@ -279,6 +289,12 @@ try {
   }
 } catch (error) {
   errors.push(`Claude JSON validation failed: ${error.message}`);
+}
+
+const securityPolicy = readText(path.join(root, "SECURITY.md"));
+const supportedMinor = `${currentVersion.split(".").slice(0, 2).join(".")}.x`;
+if (!securityPolicy.includes(`current supported line is \`${supportedMinor}\``)) {
+  errors.push(`SECURITY.md must name ${supportedMinor} as the current supported line`);
 }
 
 const workflow = readText(path.join(root, ".github", "workflows", "validate.yml"));

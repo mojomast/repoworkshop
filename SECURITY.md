@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-Security fixes are provided for the latest released minor version. The current supported line is `0.2.x`.
+Security fixes are provided for the latest released minor version. The current supported line is `0.5.x`.
 
 ## Report a vulnerability
 

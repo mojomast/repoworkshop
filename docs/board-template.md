@@ -1,6 +1,6 @@
 # Bundled Planning-Board Template
 
-RepoWorkshop 0.4.0 includes a dependency-free board at [`skills/repository-planning-workshop/templates/board/`](../skills/repository-planning-workshop/templates/board/). Copy it into an approved project-local workshop boundary; installed files remain immutable.
+RepoWorkshop 0.5.0 includes a dependency-free board at [`skills/repository-planning-workshop/templates/board/`](../skills/repository-planning-workshop/templates/board/). Copy it into an approved project-local workshop boundary; installed files remain immutable.
 
 The example and implementation use the same [canonical data contract](../skills/repository-planning-workshop/references/canonical-data-contract.md): typed IDs, validated evidence and research baseline, `sha256:` baseline/manifest/state/snapshot digests, Unicode-scalar canonical JSON, exact answer order, and strict unknown/duplicate-key rejection. The manifest self-digest omits only `manifestDigest`. State self-digest omits only `stateDigest`. The browser receives the validated canonical manifest projection and derives all records from it.
 

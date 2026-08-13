@@ -5,13 +5,13 @@
     "url": "https://github.com/mojomast"
   },
   "description": "Portable evidence-driven repository planning skills.",
-      "version": "0.4.0",
+      "version": "0.5.0",
   "plugins": [
     {
       "name": "repoworkshop",
       "source": "./",
       "description": "Evidence-driven repository planning workshops and interactive devplan generation.",
-  "version": "0.4.0",
+  "version": "0.5.0",
       "author": {
         "name": "Mojomast",
         "url": "https://github.com/mojomast"
